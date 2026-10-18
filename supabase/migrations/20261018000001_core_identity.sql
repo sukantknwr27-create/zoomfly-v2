@@ -35,13 +35,15 @@ BEGIN
 END;
 $$;
 
--- admin, or the server (service_role / direct SQL), or one of OUR OWN security-definer functions that has
--- raised the transaction-local flag 'zoomfly.system_op' (clients cannot set it; they can only call
--- allow-listed functions). Used by triggers + server functions.
+-- Privileged = the server (a service_role request), OR a direct database session (SQL editor / migrations:
+-- session_user is postgres), OR an admin, OR one of OUR OWN security-definer functions that has raised the
+-- transaction-local flag 'zoomfly.system_op' (clients cannot set it; they can only call allow-listed functions).
+-- Fails closed: a request with NO role information is NOT privileged.
 CREATE OR REPLACE FUNCTION public.is_privileged()
 RETURNS boolean LANGUAGE plpgsql SECURITY DEFINER SET search_path = public STABLE AS $$
 BEGIN
-  RETURN COALESCE(auth.role(), 'service_role') = 'service_role'
+  RETURN COALESCE(auth.role(), '') = 'service_role'
+      OR session_user IN ('postgres', 'supabase_admin')
       OR COALESCE(current_setting('zoomfly.system_op', true), '') = 'on'
       OR public.is_admin();
 END;
@@ -258,7 +260,9 @@ SELECT s.id, s.business_name, s.logo_url, s.description, s.city, s.state, s.sell
 
 -- ---------------- storage ----------------
 -- seller-documents: PRIVATE (cheque, owner ID). Path: <auth.uid()>/<file>
-INSERT INTO storage.buckets (id, name, public) VALUES ('seller-documents','seller-documents', false) ON CONFLICT (id) DO NOTHING;
+INSERT INTO storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+VALUES ('seller-documents','seller-documents', false, 4194304, ARRAY['image/jpeg','image/png','application/pdf'])
+ON CONFLICT (id) DO UPDATE SET file_size_limit = EXCLUDED.file_size_limit, allowed_mime_types = EXCLUDED.allowed_mime_types;
 CREATE POLICY "seller docs insert own" ON storage.objects FOR INSERT TO authenticated
   WITH CHECK (bucket_id = 'seller-documents' AND (storage.foldername(name))[1] = auth.uid()::text);
 CREATE POLICY "seller docs read own" ON storage.objects FOR SELECT TO authenticated
@@ -268,7 +272,9 @@ CREATE POLICY "seller docs update own" ON storage.objects FOR UPDATE TO authenti
 CREATE POLICY "seller docs admin all" ON storage.objects FOR ALL TO authenticated
   USING (bucket_id = 'seller-documents' AND public.is_admin()) WITH CHECK (bucket_id = 'seller-documents' AND public.is_admin());
 -- package-photos: PUBLIC read; only an approved seller writes into their own folder.
-INSERT INTO storage.buckets (id, name, public) VALUES ('package-photos','package-photos', true) ON CONFLICT (id) DO NOTHING;
+INSERT INTO storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+VALUES ('package-photos','package-photos', true, 5242880, ARRAY['image/jpeg','image/png','image/webp'])
+ON CONFLICT (id) DO UPDATE SET file_size_limit = EXCLUDED.file_size_limit, allowed_mime_types = EXCLUDED.allowed_mime_types;
 CREATE POLICY "package photos public read" ON storage.objects FOR SELECT USING (bucket_id = 'package-photos');
 CREATE POLICY "package photos seller write" ON storage.objects FOR INSERT TO authenticated
   WITH CHECK (bucket_id = 'package-photos' AND (storage.foldername(name))[1] = auth.uid()::text AND public.live_seller_id() IS NOT NULL);
