@@ -39,7 +39,11 @@ export default async function SellerHome() {
 
       {s.status === 'pending' && <p className="notice notice--wait">We are checking your documents. We aim to finish within 2 working days, and we will email you at {s.email}.</p>}
       {s.status === 'approved' && !allChecked && <p className="notice notice--wait">You are approved, but one or more checks are still open. You can list trips once every check below is complete.</p>}
-      {s.status === 'approved' && allChecked && <p className="notice notice--ok">You are verified and can list trips. The trip builder is the next feature we are adding.</p>}
+      {s.status === 'approved' && allChecked && (
+        <p className="notice notice--ok">
+          You are verified and can list trips. <Link href="/seller/packages">Go to your trips</Link>
+        </p>
+      )}
       {(s.status === 'rejected' || s.status === 'suspended' || s.status === 'banned') && (
         <p className="notice notice--error">
           {s.status_note || 'Contact ZoomFly support to find out why.'}

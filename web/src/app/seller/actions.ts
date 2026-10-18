@@ -6,8 +6,6 @@ import { createClient } from '@/lib/supabase/server'
 const GSTIN = /^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z][1-9A-Z]Z[0-9A-Z]$/
 const PAN = /^[A-Z]{5}[0-9]{4}[A-Z]$/
 const IFSC = /^[A-Z]{4}0[A-Z0-9]{6}$/
-const MAX_BYTES = 4 * 1024 * 1024
-const TYPES: Record<string, string> = { 'image/jpeg': 'jpg', 'image/png': 'png', 'application/pdf': 'pdf' }
 
 const str = (fd: FormData, k: string) => String(fd.get(k) ?? '').trim()
 const phone10 = (v: string) => v.replace(/[\s-]/g, '').replace(/^(\+91|91|0)(?=\d{10}$)/, '')
@@ -58,37 +56,16 @@ export async function submitSellerApplication(formData: FormData) {
   if (!bank_name) fail('Enter your bank’s name.')
   if (!owner_id_type) fail('Choose the type of owner ID you are uploading.')
 
-  const files = {
-    cheque: formData.get('cancelled_cheque') as File | null,
-    ownerId: formData.get('owner_id') as File | null,
-    travel: formData.get('travel_registration') as File | null,
-  }
-  const need = (f: File | null, label: string) => {
-    if (!f || f.size === 0) fail(`Upload the ${label}.`)
-  }
-  need(files.cheque, 'cancelled cheque')
-  need(files.ownerId, 'owner ID')
-  for (const [f, label] of [[files.cheque, 'Cancelled cheque'], [files.ownerId, 'Owner ID'], [files.travel, 'Travel registration']] as [File | null, string][]) {
-    if (f && f.size > 0) {
-      if (!TYPES[f.type]) fail(`${label}: upload a JPG, PNG or PDF file.`)
-      if (f.size > MAX_BYTES) fail(`${label} is larger than 4 MB. Upload a smaller file.`)
-    }
-  }
-
-  const uploaded: string[] = []
-  const put = async (f: File, kind: string): Promise<string> => {
-    const path = `${user.id}/${kind}-${Date.now()}.${TYPES[f.type]}`
-    const { error } = await supabase.storage.from('seller-documents').upload(path, f, { contentType: f.type, upsert: false })
-    if (error) {
-      if (uploaded.length) await supabase.storage.from('seller-documents').remove(uploaded)
-      fail('We could not upload your documents. Try again in a minute.')
-    }
-    uploaded.push(path)
-    return path
-  }
-  const chequePath = await put(files.cheque as File, 'cancelled-cheque')
-  const ownerPath = await put(files.ownerId as File, 'owner-id')
-  const travelPath = files.travel && files.travel.size > 0 ? await put(files.travel, 'travel-registration') : null
+  // Files were uploaded straight from the browser to private storage; we receive only their paths.
+  // A path must sit inside the applicant's own folder, so nobody can attach someone else's file.
+  const own = (v: string) => v.startsWith(`${user.id}/`) && !v.includes('..')
+  const chequePath = str(formData, 'cancelled_cheque_path')
+  const ownerPath = str(formData, 'owner_id_path')
+  const travelRaw = str(formData, 'travel_registration_path')
+  if (!chequePath || !own(chequePath)) fail('Upload the cancelled cheque.')
+  if (!ownerPath || !own(ownerPath)) fail('Upload the owner ID.')
+  const travelPath = travelRaw && own(travelRaw) ? travelRaw : null
+  const uploaded = [chequePath, ownerPath, ...(travelPath ? [travelPath] : [])]
 
   const { error } = await supabase.from('sellers').insert({
     user_id: user.id, business_name, contact_name, email, phone, whatsapp, city, state, pincode, address,
