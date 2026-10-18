@@ -161,3 +161,4 @@ img { max-width: 100%; display: block; }
 }
 @media (prefers-reduced-motion: reduce) { * { scroll-behavior: auto !important; } }
 .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+.field__error { font-size: 0.9rem; color: var(--brick); font-weight: 600; }
