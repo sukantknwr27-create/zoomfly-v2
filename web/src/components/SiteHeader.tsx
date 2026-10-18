@@ -12,7 +12,10 @@ export async function SiteHeader() {
         <nav className="nav" aria-label="Main">
           <Link href="/">Trips</Link>
           {profile?.role === 'admin' && <Link href="/admin/sellers">Seller reviews</Link>}
+          {profile?.role === 'admin' && <Link href="/admin/packages">Trip reviews</Link>}
+          {profile?.role === 'admin' && <Link href="/admin/destinations">Destinations</Link>}
           {profile?.role === 'seller' || profile?.role === 'admin' ? null : <Link href="/become-a-seller">Sell on ZoomFly</Link>}
+          {profile?.role === 'seller' && <Link href="/seller/packages">Your trips</Link>}
           {profile?.role === 'seller' && <Link href="/seller">Seller area</Link>}
           {profile ? (
             <form action="/auth/signout" method="post">
