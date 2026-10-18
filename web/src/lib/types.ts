@@ -83,3 +83,56 @@ export type SellerRow = {
   status_note: string | null
   created_at: string
 }
+
+export type ListingStatus = 'draft' | 'submitted' | 'changes_requested' | 'published' | 'paused' | 'rejected'
+
+export type PackageRow = {
+  id: string
+  seller_id: string
+  title: string
+  slug: string
+  description: string | null
+  destination_id: string | null
+  departure_city: string | null
+  pickup_point: string | null
+  drop_point: string | null
+  duration_days: number | null
+  nights: number | null
+  price_paise: number | null
+  occupancy_basis: string | null
+  price_includes_taxes: boolean
+  inclusions: string[]
+  exclusions: string[]
+  itinerary: { day?: number; title?: string; description?: string }[] | null
+  hotel_details: string | null
+  meal_plan: string | null
+  vehicle_type: string | null
+  min_group: number | null
+  max_group: number | null
+  child_policy: string | null
+  difficulty_level: string | null
+  high_risk_activities: boolean
+  insurance_provided: boolean
+  insurance_details: string | null
+  cancellation_policy: string | null
+  photos: string[]
+  commission_category: string | null
+  commission_pct: number | null
+  listing_status: ListingStatus
+  review_note: string | null
+  submitted_at: string | null
+  reviewed_at: string | null
+  created_at: string
+}
+
+export type DepartureRow = {
+  id: string
+  package_id: string
+  departure_date: string
+  return_date: string | null
+  total_seats: number
+  booked_seats: number
+  price_override_paise: number | null
+  booking_cutoff_days: number
+  status: 'open' | 'closed' | 'cancelled'
+}
