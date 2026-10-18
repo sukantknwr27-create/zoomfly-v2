@@ -125,7 +125,7 @@ CREATE OR REPLACE FUNCTION public.create_booking(
   p_travellers jsonb, p_contact_name text, p_contact_phone text, p_contact_email text)
 RETURNS public.bookings LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
 DECLARE d public.package_departures%ROWTYPE; pk public.packages%ROWTYPE; s public.marketplace_settings%ROWTYPE; b public.bookings%ROWTYPE;
-  v_seats integer; v_unit bigint; v_total bigint; v_comm bigint; v_adv bigint; v_days integer; v_end date; v_tiers jsonb;
+  v_seats integer; v_unit bigint; v_total bigint; v_comm bigint; v_adv bigint; v_days integer; v_end date; v_tiers jsonb; v_stale integer := 0; v_booked integer;
 BEGIN
   IF NOT public.is_privileged() THEN RAISE EXCEPTION 'Not allowed'; END IF;
   PERFORM set_config('zoomfly.system_op', 'on', true);
@@ -134,11 +134,21 @@ BEGIN
 
   SELECT * INTO d FROM public.package_departures WHERE id = p_departure FOR UPDATE;   -- serialises concurrent bookings
   IF NOT FOUND THEN RAISE EXCEPTION 'Departure not found'; END IF;
+  -- Free the seats of lapsed unpaid holds on THIS departure first, so a stale hold never blocks a real customer
+  -- (the scheduled job does the same thing in bulk).
+  WITH stale AS (
+    UPDATE public.bookings SET status = 'expired', cancelled_at = now(), cancel_reason = 'Seat hold expired'
+     WHERE departure_id = d.id AND status = 'pending_payment' AND hold_expires_at < now() RETURNING seats)
+  SELECT COALESCE(sum(seats), 0)::integer INTO v_stale FROM stale;
+  IF v_stale > 0 THEN
+    UPDATE public.package_departures SET booked_seats = GREATEST(booked_seats - v_stale, 0) WHERE id = d.id;
+  END IF;
+  v_booked := GREATEST(d.booked_seats - v_stale, 0);
   SELECT * INTO pk FROM public.packages WHERE id = d.package_id AND listing_status = 'published';
   IF NOT FOUND OR NOT public.seller_is_live(pk.seller_id) THEN RAISE EXCEPTION 'This package is not available'; END IF;
   IF d.status <> 'open' OR d.departure_date - d.booking_cutoff_days < public.today_ist() THEN RAISE EXCEPTION 'This departure is closed for booking'; END IF;
   v_seats := p_adults + p_children;
-  IF d.booked_seats + v_seats > d.total_seats THEN RAISE EXCEPTION 'Seats not available'; END IF;
+  IF v_booked + v_seats > d.total_seats THEN RAISE EXCEPTION 'Seats not available'; END IF;
   IF pk.commission_pct IS NULL THEN RAISE EXCEPTION 'Package has no commission snapshot'; END IF;
 
   SELECT * INTO s FROM public.marketplace_settings;
