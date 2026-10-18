@@ -2,6 +2,7 @@ import type { Metadata } from 'next'
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { requireUser } from '@/lib/auth'
+import { FileUpload } from '@/components/FileUpload'
 import { submitSellerApplication } from '../actions'
 
 export const metadata: Metadata = { title: 'Seller application' }
@@ -20,7 +21,7 @@ export default async function Apply({ searchParams }: { searchParams: { error?: 
         <p className="muted">It takes about ten minutes. Keep your GSTIN, PAN, a cancelled cheque and an ID for the owner ready.</p>
       </div>
       {searchParams.error && <p className="notice notice--error" role="alert">{searchParams.error}</p>}
-      <form className="form form--wide" action={submitSellerApplication} encType="multipart/form-data">
+      <form className="form form--wide" action={submitSellerApplication}>
         <fieldset className="fieldset">
           <legend>Your business</legend>
           <div className="form__grid">
@@ -53,11 +54,8 @@ export default async function Apply({ searchParams }: { searchParams: { error?: 
             <div className="field"><label htmlFor="bank_account_number">Account number</label><input id="bank_account_number" name="bank_account_number" inputMode="numeric" required /></div>
             <div className="field"><label htmlFor="bank_ifsc">IFSC code</label><input id="bank_ifsc" name="bank_ifsc" maxLength={11} autoCapitalize="characters" required /></div>
           </div>
-          <div className="field">
-            <label htmlFor="cancelled_cheque">Cancelled cheque</label>
-            <input id="cancelled_cheque" name="cancelled_cheque" type="file" accept="image/jpeg,image/png,application/pdf" required />
-            <span className="field__hint">JPG, PNG or PDF, up to 4 MB. The account holder name must match the business or its owner.</span>
-          </div>
+          <FileUpload id="cancelled_cheque" name="cancelled_cheque_path" label="Cancelled cheque" bucket="seller-documents" userId={user.id} folder="cancelled-cheque"
+            accept="image/jpeg,image/png,application/pdf" maxMb={4} required hint="JPG, PNG or PDF, up to 4 MB. The account holder name must match the business or its owner." />
         </fieldset>
 
         <fieldset className="fieldset">
@@ -70,9 +68,11 @@ export default async function Apply({ searchParams }: { searchParams: { error?: 
                 <option>Aadhaar</option><option>Passport</option><option>Driving licence</option><option>Voter ID</option>
               </select>
             </div>
-            <div className="field"><label htmlFor="owner_id">Owner ID file</label><input id="owner_id" name="owner_id" type="file" accept="image/jpeg,image/png,application/pdf" required /></div>
+            <FileUpload id="owner_id" name="owner_id_path" label="Owner ID file" bucket="seller-documents" userId={user.id} folder="owner-id"
+              accept="image/jpeg,image/png,application/pdf" maxMb={4} required hint="JPG, PNG or PDF, up to 4 MB." />
             <div className="field"><label htmlFor="travel_registration_number">Travel registration number</label><input id="travel_registration_number" name="travel_registration_number" /><span className="field__hint">Optional. Having one earns a Verified Partner badge.</span></div>
-            <div className="field"><label htmlFor="travel_registration">Travel registration file</label><input id="travel_registration" name="travel_registration" type="file" accept="image/jpeg,image/png,application/pdf" /></div>
+            <FileUpload id="travel_registration" name="travel_registration_path" label="Travel registration file" bucket="seller-documents" userId={user.id} folder="travel-registration"
+              accept="image/jpeg,image/png,application/pdf" maxMb={4} />
           </div>
         </fieldset>
 
