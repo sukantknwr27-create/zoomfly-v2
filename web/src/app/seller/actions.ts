@@ -2,6 +2,7 @@
 
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
+import { kickEmails } from '@/lib/email/drain'
 
 const GSTIN = /^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z][1-9A-Z]Z[0-9A-Z]$/
 const PAN = /^[A-Z]{5}[0-9]{4}[A-Z]$/
@@ -79,5 +80,6 @@ export async function submitSellerApplication(formData: FormData) {
     if (error.code === '23514') fail('One of the details has an invalid format. Check the GSTIN, PAN and IFSC code.')
     fail('We could not save your application. Check the details and try again.')
   }
+  await kickEmails()
   redirect('/seller')
 }
