@@ -2,6 +2,7 @@ import { NextResponse, type NextRequest } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { PaymentError, verifyCheckoutSignature } from '@/lib/razorpay'
 import { settlePayment } from '@/lib/payments'
+import { kickEmails } from '@/lib/email/drain'
 
 // The browser calls this the moment Razorpay Checkout reports success, so the customer sees "Booked" immediately.
 // The webhook does the same job independently, in case the customer closes the tab.
@@ -20,6 +21,7 @@ export async function POST(request: NextRequest) {
     if (!verifyCheckoutSignature(String(orderId), String(paymentId), String(signature))) return NextResponse.json({ error: 'Payment could not be verified.' }, { status: 400 })
 
     const booking = await settlePayment(String(orderId), String(paymentId), String(bookingId))
+    await kickEmails()
     return NextResponse.json({ ok: true, status: booking.status })
   } catch (e) {
     if (e instanceof PaymentError) return NextResponse.json({ error: e.message }, { status: e.status })
