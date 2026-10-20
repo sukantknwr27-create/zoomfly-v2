@@ -3,6 +3,7 @@
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { requireAdmin } from '@/lib/auth'
+import { kickEmails } from '@/lib/email/drain'
 
 export async function reviewPackage(formData: FormData) {
   const id = String(formData.get('id') ?? '')
@@ -27,6 +28,7 @@ export async function reviewPackage(formData: FormData) {
     patch = { listing_status: 'paused', review_note: note }
   } else back('error', 'Unknown action.')
   const { error } = await supabase.from('packages').update(patch!).eq('id', id)
+  if (!error) await kickEmails()
   if (error) back('error', error.message) // e.g. "Package incomplete. Missing: ..." or "Seller is not fully verified"
   back('ok', { publish: 'Published. It is now visible to travellers.', changes: 'Sent back to the seller with your note.', reject: 'Rejected.', pause: 'Paused.' }[decision] ?? 'Saved.')
 }
