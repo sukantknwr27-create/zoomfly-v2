@@ -162,3 +162,8 @@ img { max-width: 100%; display: block; }
 @media (prefers-reduced-motion: reduce) { * { scroll-behavior: auto !important; } }
 .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 .field__error { font-size: 0.9rem; color: var(--brick); font-weight: 600; }
+.legal h1 { margin-bottom: 0.3em; }
+.legal h2 { margin-top: 1.8em; font-size: 1.35rem; }
+.legal h3 { margin-top: 1.2em; }
+.legal p, .legal li { max-width: 72ch; }
+.legal .plain-list { margin-bottom: 1em; }

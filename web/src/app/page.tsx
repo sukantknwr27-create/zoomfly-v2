@@ -1,9 +1,18 @@
 import Link from 'next/link'
+import type { Metadata } from 'next'
 import { createClient } from '@/lib/supabase/server'
 import { formatDate, formatPaise, nightsLabel } from '@/lib/format'
 import type { PublicDeparture, PublicDestination, PublicPackage } from '@/lib/types'
+import { SITE_NAME, abs } from '@/lib/site'
+import { JsonLd } from '@/components/JsonLd'
 
 export const dynamic = 'force-dynamic'
+
+// A filtered view (?destination=manali) is the same content as /destinations/manali, so point search engines there.
+export function generateMetadata({ searchParams }: { searchParams: { destination?: string } }): Metadata {
+  const slug = searchParams.destination?.trim().toLowerCase()
+  return { alternates: { canonical: slug ? `/destinations/${slug}` : '/' } }
+}
 
 export default async function Home({ searchParams }: { searchParams: { destination?: string } }) {
   const supabase = createClient()
@@ -31,6 +40,7 @@ export default async function Home({ searchParams }: { searchParams: { destinati
 
   return (
     <>
+      <JsonLd data={{ '@context': 'https://schema.org', '@type': 'Organization', name: SITE_NAME, url: abs('/'), description: 'A marketplace for tour packages from verified, GST-registered Indian operators.' }} />
       <section className="hero">
         <div className="wrap hero__grid">
           <div>
@@ -110,7 +120,7 @@ export default async function Home({ searchParams }: { searchParams: { destinati
               </li>
               {destinations.map((d) => (
                 <li key={d.id}>
-                  <Link className="chip" href={`/?destination=${d.slug}`} aria-current={slug === d.slug ? 'true' : undefined}>
+                  <Link className="chip" href={`/destinations/${d.slug}`} aria-current={slug === d.slug ? 'true' : undefined}>
                     {d.name}
                   </Link>
                 </li>
@@ -166,6 +176,29 @@ export default async function Home({ searchParams }: { searchParams: { destinati
               })}
             </div>
           )}
+        </section>
+
+        <section className="section" aria-label="Why book on ZoomFly">
+          <h2>Why book here</h2>
+          <div className="lists" style={{ gap: 32 }}>
+            <ul className="plain-list" style={{ listStyle: 'none', padding: 0 }}>
+              <li><strong>Sellers we have checked.</strong> Each shows a valid GSTIN, PAN, bank account and owner ID before their first trip goes live.</li>
+              <li><strong>Real seats.</strong> The number you see is what is actually left, and it falls as people book.</li>
+              <li><strong>Prices you can compare.</strong> Every price is per person, with taxes included or clearly marked extra.</li>
+            </ul>
+            <ul className="plain-list" style={{ listStyle: 'none', padding: 0 }}>
+              <li><strong>You pay ZoomFly.</strong> The seller is paid in stages as your trip approaches and after it ends.</li>
+              <li><strong>Private by default.</strong> Seller and traveller see each other&rsquo;s phone and email only once the trip is paid in full.</li>
+              <li><strong>Clear cancellation.</strong> The policy is shown before you book, and a seller&rsquo;s cancellation always means a full refund.</li>
+            </ul>
+          </div>
+          <p><Link href="/how-it-works">Read how ZoomFly works</Link></p>
+        </section>
+
+        <section className="section panel" aria-label="For tour operators">
+          <h2>Run tours?</h2>
+          <p>Registration is free. We earn a commission only when you get a booking, and you are paid in stages. All we ask is a GSTIN and a few documents so travellers can trust you.</p>
+          <Link className="btn btn--primary" href="/become-a-seller">See what we need</Link>
         </section>
       </div>
     </>
