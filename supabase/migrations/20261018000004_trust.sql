@@ -67,7 +67,7 @@ BEGIN
   END IF;
   SELECT * INTO m FROM public.mask_contact_info(NEW.body);
   INSERT INTO public.message_originals (message_id, original) VALUES (NEW.id, NEW.body);
-  NEW.body := m.masked; NEW.flag_reasons := m.reasons; NEW.flagged := array_length(m.reasons,1) > 0;
+  NEW.body := m.masked; NEW.flag_reasons := m.reasons; NEW.flagged := COALESCE(array_length(m.reasons,1), 0) > 0;   -- NULL for an empty list, so COALESCE
   RETURN NEW;
 END;
 $$;
