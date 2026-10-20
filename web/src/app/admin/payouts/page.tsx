@@ -20,6 +20,12 @@ export default async function AdminPayouts({ searchParams }: { searchParams: { o
     .order('due_on')
     .limit(200)
   const rows = (data ?? []) as unknown as Row[]
+  const { data: adj } = await supabase.from('seller_adjustments').select('amount_paise, reason, created_at, sellers(business_name)').order('created_at', { ascending: false }).limit(100)
+  const owed = new Map<string, number>()
+  for (const a of (adj ?? []) as unknown as { amount_paise: number; sellers: { business_name: string } | { business_name: string }[] | null }[]) {
+    const n = one(a.sellers)?.business_name ?? ''
+    owed.set(n, (owed.get(n) ?? 0) + Number(a.amount_paise))
+  }
   const toPay = rows.filter((r) => r.status === 'released')
   const upcoming = rows.filter((r) => r.status !== 'released')
 
@@ -52,6 +58,15 @@ export default async function AdminPayouts({ searchParams }: { searchParams: { o
             })}
           </tbody>
         </table>
+      )}
+      {[...owed.entries()].some(([, v]) => v < 0) && (
+        <>
+          <h2 className="section">Deductions to net off</h2>
+          <p className="muted">These sellers owe ZoomFly for refunds paid to travellers. Take them off the sellers&rsquo; next transfers.</p>
+          <table className="table"><thead><tr><th>Seller</th><th>Amount to deduct</th></tr></thead><tbody>
+            {[...owed.entries()].filter(([, v]) => v < 0).map(([n, v]) => <tr key={n}><td>{n}</td><td><strong>{formatPaise(-v)}</strong></td></tr>)}
+          </tbody></table>
+        </>
       )}
       <h2 className="section">Coming up</h2>
       {upcoming.length === 0 ? <p className="panel">Nothing scheduled.</p> : (
