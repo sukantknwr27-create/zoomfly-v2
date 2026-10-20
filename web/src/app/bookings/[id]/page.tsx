@@ -8,6 +8,8 @@ import { BOOKING_LABEL, bookingPill, refundPct } from '@/lib/booking'
 import type { BookingRow } from '@/lib/payments'
 import { PayButton } from '@/components/PayButton'
 import { CancelButton } from '@/components/CancelButton'
+import { ReviewForm } from '@/components/ReviewForm'
+import { DisputeForm } from '@/components/DisputeForm'
 
 export const metadata: Metadata = { title: 'Your booking' }
 export const dynamic = 'force-dynamic'
@@ -20,10 +22,12 @@ export default async function BookingPage({ params }: { params: { id: string } }
   const { data } = await supabase.from('bookings').select('*').eq('id', params.id).maybeSingle()
   const b = data as BookingRow | null
   if (!b) notFound()
-  const [{ data: pays }, { data: refunds }, { data: c }] = await Promise.all([
+  const [{ data: pays }, { data: refunds }, { data: c }, { data: myReview }, { data: disputes }] = await Promise.all([
     supabase.from('payments').select('id, kind, amount_paise, created_at, needs_review').eq('booking_id', b.id).order('created_at'),
     supabase.from('refunds').select('id, amount_paise, status, created_at').eq('booking_id', b.id).order('created_at'),
     supabase.rpc('get_booking_contacts', { p_booking: b.id }),
+    supabase.from('reviews').select('overall, matched_listing, value_for_money, comment').eq('booking_id', b.id).maybeSingle(),
+    supabase.from('disputes').select('id, status, reason, resolution_note, resolved_refund_paise, resolution_due, created_at').eq('booking_id', b.id).order('created_at', { ascending: false }),
   ])
   const contacts = c as Contacts
   const holdLive = b.status === 'pending_payment' && b.hold_expires_at && new Date(b.hold_expires_at) > new Date()
@@ -112,6 +116,31 @@ export default async function BookingPage({ params }: { params: { id: string } }
           )}
         </div>
       </div>
+
+      {b.status === 'completed' && (
+        <section className="section">
+          <h2>Your review</h2>
+          {myReview ? (
+            <div className="panel"><p style={{ margin: 0 }}>You rated this trip {myReview.overall} of 5, and said it matched the listing {myReview.matched_listing} of 5. Thank you.{myReview.comment ? ` “${myReview.comment}”` : ''}</p></div>
+          ) : (
+            <><p className="muted">How was it? Your review helps other travellers and shows how honest the listing was.</p><ReviewForm bookingId={b.id} /></>
+          )}
+        </section>
+      )}
+
+      {['confirmed', 'fully_paid', 'completed', 'cancelled_by_customer', 'cancelled_by_seller', 'cancelled_by_admin'].includes(b.status) && (
+        <section className="section">
+          <h2>Something wrong?</h2>
+          {(disputes ?? []).map((d: { id: string; status: string; reason: string; resolution_note: string | null; resolved_refund_paise: number | null; resolution_due: string }) => (
+            <div key={d.id} className="panel" style={{ marginBottom: 14 }}>
+              <p style={{ margin: '0 0 6px' }}><span className={d.status === 'resolved' ? 'pill pill--approved' : 'pill pill--pending'}>{d.status === 'resolved' ? 'Resolved' : d.status === 'under_review' ? 'We are looking into it' : 'Received'}</span></p>
+              <p style={{ margin: '0 0 6px', whiteSpace: 'pre-wrap' }}>{d.reason}</p>
+              {d.status === 'resolved' ? <p style={{ margin: 0 }}><strong>Our decision:</strong> {d.resolution_note}{d.resolved_refund_paise ? ` You are being refunded ${formatPaise(d.resolved_refund_paise)}.` : ''}</p> : <p className="muted small" style={{ margin: 0 }}>We aim to settle this by {formatDate(d.resolution_due.slice(0, 10), true)}.</p>}
+            </div>
+          ))}
+          {!(disputes ?? []).some((d: { status: string }) => d.status !== 'resolved') && <DisputeForm bookingId={b.id} />}
+        </section>
+      )}
     </div>
   )
 }
