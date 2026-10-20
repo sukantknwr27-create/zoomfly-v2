@@ -2,7 +2,7 @@ import Link from 'next/link'
 import type { Metadata } from 'next'
 import { signIn } from '../actions'
 
-export const metadata: Metadata = { title: 'Sign in' }
+export const metadata: Metadata = { title: 'Sign in', robots: { index: false } }
 
 export default function Login({ searchParams }: { searchParams: { error?: string; notice?: string; next?: string } }) {
   const next = searchParams.next ?? '/'
