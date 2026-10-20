@@ -1,6 +1,7 @@
 import { NextResponse, type NextRequest } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
+import { kickEmails } from '@/lib/email/drain'
 
 export async function POST(request: NextRequest, { params }: { params: { id: string } }) {
   const supabase = createClient()
@@ -17,6 +18,7 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
   const admin = createAdminClient()
   const { error } = await admin.rpc('cancel_booking', { p_booking: params.id, p_by: 'customer', p_reason: reason })
   if (error) return NextResponse.json({ error: /cannot be cancelled/i.test(error.message) ? 'This booking can no longer be cancelled.' : 'We could not cancel the booking. Try again.' }, { status: 409 })
+  await kickEmails()
   const { data: refund } = await admin.from('refunds').select('amount_paise').eq('booking_id', params.id).order('created_at', { ascending: false }).limit(1).maybeSingle()
   return NextResponse.json({ ok: true, refund_paise: refund ? Number(refund.amount_paise) : 0 })
 }
