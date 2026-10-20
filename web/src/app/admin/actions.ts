@@ -3,6 +3,7 @@
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { requireAdmin } from '@/lib/auth'
+import { kickEmails } from '@/lib/email/drain'
 
 const FLAGS = ['gstin_verified', 'pan_verified', 'bank_verified', 'address_verified', 'owner_id_verified'] as const
 
@@ -30,5 +31,6 @@ export async function reviewSeller(formData: FormData) {
   }
   const { error } = await supabase.from('sellers').update(patch).eq('id', id)
   if (error) back('error=' + encodeURIComponent('Could not save: ' + error.message))
+  await kickEmails()
   back('saved=' + decision)
 }
