@@ -4,6 +4,10 @@ import type { Metadata } from 'next'
 import { createClient } from '@/lib/supabase/server'
 import { formatDate, formatPaise, nightsLabel } from '@/lib/format'
 import type { PublicDeparture, PublicPackage } from '@/lib/types'
+import { abs } from '@/lib/site'
+import { JsonLd } from '@/components/JsonLd'
+import { getCurrentUser } from '@/lib/auth'
+import { StartChatButton } from '@/components/StartChatButton'
 
 export const dynamic = 'force-dynamic'
 
@@ -15,13 +19,22 @@ async function load(slug: string) {
 
 export async function generateMetadata({ params }: { params: { slug: string } }): Promise<Metadata> {
   const { pkg } = await load(params.slug)
-  if (!pkg) return { title: 'Trip not found' }
-  return { title: pkg.title, description: `${pkg.title}: ${pkg.destination_name}, ${nightsLabel(pkg.nights, pkg.duration_days)}, from ${formatPaise(pkg.price_paise)} ${pkg.occupancy_basis ?? ''}`.trim() }
+  if (!pkg) return { title: 'Trip not found', robots: { index: false } }
+  const base = `${pkg.destination_name}, ${nightsLabel(pkg.nights, pkg.duration_days)}, from ${pkg.departure_city}. ${formatPaise(pkg.price_paise)} ${pkg.occupancy_basis ?? ''}`.trim()
+  const description = (pkg.description ? `${pkg.description.slice(0, 120)} ` : '') + base
+  return {
+    title: pkg.title,
+    description: description.slice(0, 300),
+    alternates: { canonical: `/trips/${pkg.slug}` },
+    openGraph: { title: pkg.title, description: description.slice(0, 200), url: abs(`/trips/${pkg.slug}`), type: 'website', images: pkg.photos[0] ? [{ url: pkg.photos[0] }] : undefined },
+    twitter: { card: 'summary_large_image', title: pkg.title, images: pkg.photos[0] ? [pkg.photos[0]] : undefined },
+  }
 }
 
 export default async function TripPage({ params }: { params: { slug: string } }) {
   const { supabase, pkg } = await load(params.slug)
   if (!pkg) notFound()
+  const viewer = await getCurrentUser()
 
   const [{ data: deps }, { data: tiers }, { data: policy }, { data: reviews }] = await Promise.all([
     supabase.from('public_package_departures').select('*').eq('package_id', pkg.id).order('departure_date'),
@@ -35,12 +48,42 @@ export default async function TripPage({ params }: { params: { slug: string } })
 
   return (
     <div className="wrap page">
+      <JsonLd data={[
+        {
+          '@context': 'https://schema.org',
+          '@type': 'Product',
+          name: pkg.title,
+          description: pkg.description || undefined,
+          image: pkg.photos.slice(0, 3),
+          url: abs(`/trips/${pkg.slug}`),
+          brand: { '@type': 'Organization', name: pkg.seller_name },
+          offers: {
+            '@type': 'Offer',
+            url: abs(`/trips/${pkg.slug}`),
+            priceCurrency: 'INR',
+            price: (Number(pkg.price_paise) / 100).toFixed(2),
+            availability: departures.length > 0 ? 'https://schema.org/InStock' : 'https://schema.org/SoldOut',
+            seller: { '@type': 'Organization', name: pkg.seller_name },
+          },
+          // only real, published reviews: never an invented rating
+          ...(pkg.rating_avg !== null && pkg.review_count > 0 ? { aggregateRating: { '@type': 'AggregateRating', ratingValue: Number(pkg.rating_avg).toFixed(1), reviewCount: pkg.review_count, bestRating: '5', worstRating: '1' } } : {}),
+        },
+        {
+          '@context': 'https://schema.org',
+          '@type': 'BreadcrumbList',
+          itemListElement: [
+            { '@type': 'ListItem', position: 1, name: 'ZoomFly', item: abs('/') },
+            ...(pkg.destination_slug ? [{ '@type': 'ListItem', position: 2, name: pkg.destination_name, item: abs(`/destinations/${pkg.destination_slug}`) }] : []),
+            { '@type': 'ListItem', position: pkg.destination_slug ? 3 : 2, name: pkg.title, item: abs(`/trips/${pkg.slug}`) },
+          ],
+        },
+      ]} />
       <p className="small">
         <Link href="/">All trips</Link>
         {pkg.destination_slug && (
           <>
             {' / '}
-            <Link href={`/?destination=${pkg.destination_slug}`}>{pkg.destination_name}</Link>
+            <Link href={`/destinations/${pkg.destination_slug}`}>{pkg.destination_name}</Link>
           </>
         )}
       </p>
@@ -155,17 +198,33 @@ export default async function TripPage({ params }: { params: { slug: string } })
             {pkg.seller_city ? `, ${pkg.seller_city}` : ''}
           </p>
           {pkg.seller_verified && <p className="verified" style={{ marginBottom: 14 }}>Verified seller</p>}
-          <h3 style={{ marginTop: 18 }}>Open departures</h3>
-          <ul className="dep-list">
-            {departures.map((d) => (
-              <li key={d.id}>
-                <span>{formatDate(d.departure_date, true)}</span>
-                <span className={d.seats_left <= 4 ? 'seats seats--few' : 'seats'}>
-                  {d.seats_left} {d.seats_left === 1 ? 'seat' : 'seats'} left
-                </span>
-              </li>
-            ))}
-          </ul>
+          <div style={{ margin: '4px 0 6px' }}>
+            {viewer ? <StartChatButton packageId={pkg.id} /> : <Link className="btn" href={`/login?next=/trips/${pkg.slug}`} style={{ display: 'block', textAlign: 'center' }}>Sign in to ask the seller a question</Link>}
+          </div>
+          <h3 style={{ marginTop: 18 }}>Book a date</h3>
+          <form className="form" action="/book" method="get" style={{ gap: 12 }}>
+            <fieldset style={{ border: 0, padding: 0, margin: 0 }}>
+              <legend className="sr-only">Departure date</legend>
+              {departures.map((d, i) => (
+                <label key={d.id} className="check" style={{ padding: '6px 0' }}>
+                  <input type="radio" name="departure" value={d.id} defaultChecked={i === 0} required />
+                  <span>
+                    {formatDate(d.departure_date, true)}
+                    <span className={d.seats_left <= 4 ? 'seats seats--few' : 'seats'} style={{ display: 'block' }}>
+                      {d.seats_left} {d.seats_left === 1 ? 'seat' : 'seats'} left, {formatPaise(d.price_paise)}
+                    </span>
+                  </span>
+                </label>
+              ))}
+            </fieldset>
+            <div className="form__grid" style={{ gridTemplateColumns: '1fr 1fr 1fr', gap: 10 }}>
+              <div className="field"><label htmlFor="adults">Adults</label><input id="adults" name="adults" type="number" min={1} max={20} defaultValue={2} /></div>
+              <div className="field"><label htmlFor="children">Children</label><input id="children" name="children" type="number" min={0} max={20} defaultValue={0} /></div>
+              <div className="field"><label htmlFor="infants">Infants</label><input id="infants" name="infants" type="number" min={0} max={10} defaultValue={0} /></div>
+            </div>
+            <button className="btn btn--primary" type="submit">Continue to book</button>
+            <span className="field__hint">Infants travel without a seat. You pay a small advance now and the balance later.</span>
+          </form>
         </aside>
       </div>
     </div>
