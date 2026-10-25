@@ -2,6 +2,8 @@ import { NextResponse, type NextRequest } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import type { BookingRow } from '@/lib/payments'
+import { allow } from '@/lib/ratelimit'
+import { TERMS_VERSION } from '@/lib/site'
 
 type Body = {
   departureId?: string
@@ -10,6 +12,7 @@ type Body = {
   infants?: number
   travellers?: { name?: string; age?: number | string | null }[]
   contact?: { name?: string; phone?: string; email?: string }
+  acceptTerms?: boolean
 }
 
 const err = (message: string, status: number) => NextResponse.json({ error: message }, { status })
@@ -20,6 +23,7 @@ export async function POST(request: NextRequest) {
     data: { user },
   } = await supabase.auth.getUser()
   if (!user) return err('Sign in to book.', 401)
+  if (!(await allow(`book:${user.id}`, 15, 3600))) return err('You are booking too fast. Please wait a little and try again.', 429)
 
   let b: Body
   try {
@@ -27,6 +31,7 @@ export async function POST(request: NextRequest) {
   } catch {
     return err('Invalid request.', 400)
   }
+  if (b.acceptTerms !== true) return err('Please accept the Terms of Use and the cancellation policy to book.', 400)
   const adults = Number(b.adults), children = Number(b.children ?? 0), infants = Number(b.infants ?? 0)
   if (!b.departureId || !Number.isInteger(adults) || adults < 1 || adults > 20) return err('Choose a departure and at least one adult.', 400)
   if (!Number.isInteger(children) || children < 0 || children > 20 || !Number.isInteger(infants) || infants < 0 || infants > 10) return err('Check the number of children and infants.', 400)
@@ -57,5 +62,6 @@ export async function POST(request: NextRequest) {
     return err('We could not reserve your seats. Please try again.', 400)
   }
   const bk = data as BookingRow
+  await admin.from('bookings').update({ terms_accepted_at: new Date().toISOString(), terms_version: TERMS_VERSION }).eq('id', bk.id)
   return NextResponse.json({ id: bk.id, ref: bk.booking_ref, status: bk.status, total_paise: bk.total_paise, advance_paise: bk.advance_paise, hold_expires_at: bk.hold_expires_at })
 }
