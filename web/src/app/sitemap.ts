@@ -8,7 +8,7 @@ import { createPublicClient } from '@/lib/supabase/public'
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   noStore() // generated on every request: a sitemap frozen at build time would list yesterday's trips
   const now = new Date()
-  const fixed: MetadataRoute.Sitemap = ['/', '/destinations', '/how-it-works', '/become-a-seller', '/contact', '/cancellation-and-refunds', '/marketplace-rules'].map((p) => ({ url: abs(p), lastModified: now, changeFrequency: 'weekly', priority: p === '/' ? 1 : 0.5 }))
+  const fixed: MetadataRoute.Sitemap = ['/', '/trips', '/destinations', '/how-it-works', '/become-a-seller', '/contact', '/cancellation-and-refunds', '/marketplace-rules'].map((p) => ({ url: abs(p), lastModified: now, changeFrequency: 'weekly', priority: p === '/' ? 1 : 0.5 }))
   try {
     const db = createPublicClient()
     const [{ data: trips }, { data: dests }] = await Promise.all([

@@ -49,7 +49,7 @@ export default async function Home({ searchParams }: { searchParams: { destinati
               We list tour packages only from GST-registered operators we have checked. Prices are all-in, departure dates are the seller&rsquo;s own, and the
               seat count is the seats actually left.
             </p>
-            <form className="search" action="/" method="get">
+            <form className="search" action="/trips" method="get">
               <label className="sr-only" htmlFor="destination" style={{ position: 'absolute', left: '-9999px' }}>
                 Destination
               </label>
@@ -131,6 +131,7 @@ export default async function Home({ searchParams }: { searchParams: { destinati
 
         <section className="section" aria-label="Trips">
           <h2>{activeDest ? `Trips to ${activeDest.name}` : 'Trips you can book now'}</h2>
+          <p className="small"><Link href="/trips">Search all trips by price, length and date</Link></p>
           {packages.length === 0 ? (
             <div className="panel">
               <p>

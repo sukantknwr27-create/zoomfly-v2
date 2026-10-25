@@ -167,3 +167,4 @@ img { max-width: 100%; display: block; }
 .legal h3 { margin-top: 1.2em; }
 .legal p, .legal li { max-width: 72ch; }
 .legal .plain-list { margin-bottom: 1em; }
+@media print { .site-header, .site-footer, .btn { display: none !important; } body { background: #fff; } .panel { border: 0; padding: 0; } }
