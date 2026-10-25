@@ -17,17 +17,12 @@ export async function SiteHeader() {
         </Link>
         <nav className="nav" aria-label="Main">
           <Link href="/">Trips</Link>
-          {profile?.role === 'admin' && <Link href="/admin/sellers">Seller reviews</Link>}
-          {profile?.role === 'admin' && <Link href="/admin/packages">Trip reviews</Link>}
-          {profile?.role === 'admin' && <Link href="/admin/payouts">Payouts</Link>}
-          {profile?.role === 'admin' && <Link href="/admin/disputes">Disputes</Link>}
-          {profile?.role === 'admin' && <Link href="/admin/flags">Flagged chats</Link>}
-          {profile?.role === 'admin' && <Link href="/admin/emails">Emails</Link>}
-          {profile?.role === 'admin' && <Link href="/admin/destinations">Destinations</Link>}
+          {profile?.role === 'admin' && <Link href="/admin">Admin</Link>}
           {profile?.role === 'seller' || profile?.role === 'admin' ? null : <Link href="/become-a-seller">Sell on ZoomFly</Link>}
           {profile?.role === 'seller' && <Link href="/seller/packages">Your trips</Link>}
           {profile?.role === 'seller' && <Link href="/seller/bookings">Bookings</Link>}
           {profile && <Link href="/bookings">My bookings</Link>}
+          {profile && <Link href="/account">Account</Link>}
           {profile && <Link href="/messages">Messages{unread > 0 ? ` (${unread})` : ''}</Link>}
           {profile?.role === 'seller' && <Link href="/seller">Seller area</Link>}
           {profile ? (

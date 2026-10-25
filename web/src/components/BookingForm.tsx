@@ -23,6 +23,7 @@ export function BookingForm({ departureId, adults, children, infants, defaultNam
       body: JSON.stringify({
         departureId, adults, children, infants, travellers,
         contact: { name: fd.get('contact_name'), phone: fd.get('contact_phone'), email: fd.get('contact_email') },
+        acceptTerms: fd.get('terms') === 'on',
       }),
     })
     const json = await res.json().catch(() => ({}))
@@ -56,6 +57,10 @@ export function BookingForm({ departureId, adults, children, infants, defaultNam
         </div>
         <span className="field__hint">The seller does not get these until your trip is paid in full.</span>
       </fieldset>
+      <label className="check">
+        <input type="checkbox" name="terms" required />
+        <span>I accept the <a href="/terms" target="_blank" rel="noopener noreferrer">Terms of Use</a> and this trip&rsquo;s <a href="/cancellation-and-refunds" target="_blank" rel="noopener noreferrer">cancellation policy</a>.</span>
+      </label>
       <div className="actions">
         <button className="btn btn--primary" type="submit" disabled={busy}>{busy ? 'Reserving your seats…' : 'Reserve seats and continue to payment'}</button>
       </div>
