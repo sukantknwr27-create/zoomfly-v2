@@ -3,6 +3,7 @@ import { createClient } from '@/lib/supabase/server'
 import { PaymentError, verifyCheckoutSignature } from '@/lib/razorpay'
 import { settlePayment } from '@/lib/payments'
 import { kickEmails } from '@/lib/email/drain'
+import { reportError } from '@/lib/monitor'
 
 // The browser calls this the moment Razorpay Checkout reports success, so the customer sees "Booked" immediately.
 // The webhook does the same job independently, in case the customer closes the tab.
@@ -25,7 +26,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ ok: true, status: booking.status })
   } catch (e) {
     if (e instanceof PaymentError) return NextResponse.json({ error: e.message }, { status: e.status })
-    console.error('verify failed', e)
+    await reportError('payments.verify', e)
     return NextResponse.json({ error: 'We could not confirm the payment yet. If money was deducted, it will show on your booking shortly.' }, { status: 500 })
   }
 }
