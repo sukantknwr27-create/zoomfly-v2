@@ -46,6 +46,7 @@ export default async function BookingPage({ params }: { params: { id: string } }
         <div className="status-line">
           <span className={bookingPill(b.status)}>{BOOKING_LABEL[b.status]}</span>
           <span className="muted small">Booking {b.booking_ref}</span>
+          {b.paid_paise > 0 && <Link className="small" href={`/bookings/${b.id}/receipt`}>Print a payment receipt</Link>}
         </div>
       </div>
 
