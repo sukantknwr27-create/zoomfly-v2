@@ -2,6 +2,7 @@ import { NextResponse, type NextRequest } from 'next/server'
 import { PaymentError, verifyWebhookSignature } from '@/lib/razorpay'
 import { settlePayment } from '@/lib/payments'
 import { kickEmails } from '@/lib/email/drain'
+import { reportError } from '@/lib/monitor'
 
 // Razorpay -> Dashboard -> Webhooks: URL https://YOUR-SITE/api/webhooks/razorpay, events payment.captured and order.paid,
 // secret = RAZORPAY_WEBHOOK_SECRET. A non-2xx answer makes Razorpay retry, so only genuine temporary failures return 5xx.
@@ -26,7 +27,7 @@ export async function POST(request: NextRequest) {
       console.error('webhook: payment not applied', p.id, e.message) // permanent: acknowledge so Razorpay stops retrying
       return NextResponse.json({ ok: true, ignored: e.message })
     }
-    console.error('webhook failed', e)
+    await reportError('payments.webhook', e, { payment: p.id, order: p.order_id })
     return NextResponse.json({ error: 'Temporary failure' }, { status: 500 })
   }
 }
