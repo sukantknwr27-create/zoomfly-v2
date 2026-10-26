@@ -26,6 +26,7 @@ export default function Login({ searchParams }: { searchParams: { error?: string
         <div className="actions">
           <button className="btn btn--primary" type="submit">Sign in</button>
         </div>
+        <p className="muted"><Link href="/forgot-password">Forgot your password?</Link></p>
         <p className="muted">
           New to ZoomFly? <Link href={`/signup?next=${encodeURIComponent(next)}`}>Create an account</Link>
         </p>
