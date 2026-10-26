@@ -16,7 +16,7 @@ const CHECKS: [keyof SellerRow, string][] = [
   ['owner_id_verified', 'Owner ID checked'],
 ]
 
-export default async function SellerHome() {
+export default async function SellerHome({ searchParams }: { searchParams: { ok?: string } }) {
   await requireUser('/seller')
   const supabase = createClient()
   const { data } = await supabase.from('sellers').select('*').maybeSingle()
@@ -37,6 +37,8 @@ export default async function SellerHome() {
         </div>
       </div>
 
+      {searchParams.ok && <p className="notice notice--ok" role="status">{searchParams.ok}</p>}
+      {(s.status === 'pending' || s.status === 'rejected') && <p><Link className="btn" href="/seller/apply?edit=1">{s.status === 'rejected' ? 'Fix and send your application again' : 'Edit your application'}</Link></p>}
       {s.status === 'pending' && <p className="notice notice--wait">We are checking your documents. We aim to finish within 2 working days, and we will email you at {s.email}.</p>}
       {s.status === 'approved' && !allChecked && <p className="notice notice--wait">You are approved, but one or more checks are still open. You can list trips once every check below is complete.</p>}
       {s.status === 'approved' && allChecked && (
