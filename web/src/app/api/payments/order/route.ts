@@ -1,6 +1,8 @@
 import { NextResponse, type NextRequest } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { PaymentError, createOrder, razorpayKeyId } from '@/lib/razorpay'
+import { allow } from '@/lib/ratelimit'
+import { reportError } from '@/lib/monitor'
 
 export async function POST(request: NextRequest) {
   try {
@@ -9,6 +11,7 @@ export async function POST(request: NextRequest) {
       data: { user },
     } = await supabase.auth.getUser()
     if (!user) return NextResponse.json({ error: 'Sign in first.' }, { status: 401 })
+    if (!(await allow(`order:${user.id}`, 30, 3600))) return NextResponse.json({ error: 'Too many payment attempts. Please wait a little.' }, { status: 429 })
     const body = await request.json().catch(() => ({}))
     const kind = body?.kind === 'balance' ? 'balance' : 'advance'
 
@@ -38,7 +41,7 @@ export async function POST(request: NextRequest) {
     })
   } catch (e) {
     if (e instanceof PaymentError) return NextResponse.json({ error: e.message }, { status: e.status })
-    console.error('order failed', e)
+    await reportError('payments.order', e)
     return NextResponse.json({ error: 'Could not start the payment. Try again.' }, { status: 500 })
   }
 }
