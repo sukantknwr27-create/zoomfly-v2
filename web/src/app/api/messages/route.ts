@@ -1,10 +1,12 @@
 import { NextResponse, type NextRequest } from 'next/server'
 import { apiUser, fail } from '@/lib/api'
 import { kickEmails } from '@/lib/email/drain'
+import { allow } from '@/lib/ratelimit'
 
 export async function POST(request: NextRequest) {
   const { supabase, user } = await apiUser()
   if (!user) return fail('Sign in first.', 401)
+  if (!(await allow(`msg:${user.id}`, 40, 3600))) return fail('You are sending messages too fast. Please wait a little.', 429)
   const b = await request.json().catch(() => ({}))
   const text = String(b?.body ?? '').trim()
   const conversationId = String(b?.conversationId ?? '')
