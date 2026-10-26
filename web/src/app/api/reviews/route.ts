@@ -1,5 +1,6 @@
 import { NextResponse, type NextRequest } from 'next/server'
 import { apiUser, fail } from '@/lib/api'
+import { allow } from '@/lib/ratelimit'
 
 const rating = (v: unknown, required: boolean): number | null | 'bad' => {
   if (v === undefined || v === null || v === '') return required ? 'bad' : null
@@ -10,6 +11,7 @@ const rating = (v: unknown, required: boolean): number | null | 'bad' => {
 export async function POST(request: NextRequest) {
   const { supabase, user } = await apiUser()
   if (!user) return fail('Sign in first.', 401)
+  if (!(await allow(`review:${user.id}`, 20, 86400))) return fail('Too many reviews today.', 429)
   const b = await request.json().catch(() => ({}))
   const value_for_money = rating(b?.value_for_money, true), matched_listing = rating(b?.matched_listing, true), overall = rating(b?.overall, true)
   const hotel_quality = rating(b?.hotel_quality, false), transport = rating(b?.transport, false), guide_support = rating(b?.guide_support, false)
