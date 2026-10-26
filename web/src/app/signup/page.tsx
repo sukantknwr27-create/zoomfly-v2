@@ -1,6 +1,7 @@
 import Link from 'next/link'
 import type { Metadata } from 'next'
 import { signUp } from '../actions'
+import { Turnstile } from '@/components/Turnstile'
 
 export const metadata: Metadata = { title: 'Create an account', robots: { index: false } }
 
@@ -28,6 +29,12 @@ export default function Signup({ searchParams }: { searchParams: { error?: strin
           <input id="password" name="password" type="password" autoComplete="new-password" minLength={8} required />
           <span className="field__hint">At least 8 characters.</span>
         </div>
+        <label className="check">
+          <input type="checkbox" name="terms" required />
+          <span>I am 18 or older and I accept the <Link href="/terms">Terms of Use</Link> and the <Link href="/privacy">Privacy Policy</Link>.</span>
+        </label>
+        <div aria-hidden="true" style={{ position: 'absolute', left: '-9999px' }}><label>Leave this empty<input name="website" tabIndex={-1} autoComplete="off" /></label></div>
+        <Turnstile />
         <div className="actions">
           <button className="btn btn--primary" type="submit">Create account</button>
         </div>
