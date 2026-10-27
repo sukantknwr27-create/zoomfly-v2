@@ -1,7 +1,8 @@
 import Link from 'next/link'
 import type { Metadata } from 'next'
 import { createClient } from '@/lib/supabase/server'
-import { formatDate, formatPaise, nightsLabel } from '@/lib/format'
+import { TripCard } from '@/components/TripCard'
+import { IconCompass, IconSearch } from '@/components/Icons'
 import type { PublicDeparture, PublicDestination, PublicPackage } from '@/lib/types'
 
 export const metadata: Metadata = {
@@ -77,10 +78,17 @@ export default async function Trips({ searchParams }: { searchParams: SP }) {
 
   return (
     <div className="wrap page">
-      <div className="page__head"><h1>Search trips</h1><p className="muted">{total} {total === 1 ? 'trip' : 'trips'} open for booking{anyFilter ? ' with these filters' : ''}.</p></div>
-      <form className="panel form form--wide" action="/trips" method="get" style={{ marginBottom: 28 }}>
-        <div className="form__grid" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))' }}>
-          <div className="field"><label htmlFor="q">Search</label><input id="q" name="q" defaultValue={q} placeholder="Place, trip or operator" /></div>
+      <div className="page__head">
+        <h1>Find your trip</h1>
+        <p className="muted" style={{ marginBottom: 0 }}>Tours from verified operators, with real dates and seats left.</p>
+      </div>
+      <form className="filterbar" action="/trips" method="get" role="search">
+        <div className="filterbar__q">
+          <IconSearch />
+          <label className="sr-only" htmlFor="q">Search</label>
+          <input id="q" name="q" defaultValue={q} placeholder="Search a place, a trip or an operator" />
+        </div>
+        <div className="filterbar__grid">
           <div className="field"><label htmlFor="destination">Destination</label>
             <select id="destination" name="destination" defaultValue={dest}><option value="">Anywhere</option>{destinations.map((d) => <option key={d.id} value={d.slug}>{d.name}</option>)}</select></div>
           <div className="field"><label htmlFor="month">Leaving in</label>
@@ -92,34 +100,30 @@ export default async function Trips({ searchParams }: { searchParams: SP }) {
           <div className="field"><label htmlFor="sort">Sort by</label>
             <select id="sort" name="sort" defaultValue={sort}><option value="soonest">Leaving soonest</option><option value="price_asc">Price, low to high</option><option value="price_desc">Price, high to low</option><option value="rating">Best rated</option></select></div>
         </div>
-        <div className="actions"><button className="btn btn--primary" type="submit">Search</button>{anyFilter && <Link className="btn" href="/trips">Clear filters</Link>}</div>
+        <div className="actions" style={{ marginTop: 18 }}>
+          <button className="btn btn--primary" type="submit">Show trips</button>
+          {anyFilter && <Link className="btn" href="/trips">Clear filters</Link>}
+        </div>
       </form>
 
+      <div className="results-head">
+        <h2>{total} {total === 1 ? 'trip' : 'trips'} open for booking{anyFilter ? ' with these filters' : ''}</h2>
+      </div>
+
       {trips.length === 0 ? (
-        <div className="panel"><p><strong>No trips match.</strong></p><p className="muted">{anyFilter ? 'Try a wider price range or another month, or clear the filters.' : 'Trips appear here as soon as a verified seller publishes dates with seats.'}</p></div>
+        <div className="panel empty">
+          <IconCompass />
+          <p><strong>No trips match.</strong></p>
+          <p className="muted">{anyFilter ? 'Try a wider price range or another month, or clear the filters.' : 'Trips appear here as soon as a verified seller publishes dates with seats.'}</p>
+        </div>
       ) : (
-        <div className="trip-list">
-          {trips.map((p) => {
-            const n = next.get(p.id)
-            return (
-              <Link key={p.id} href={`/trips/${p.slug}`} className="trip-row">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img className="trip-row__photo" src={p.photos[0]} alt={`${p.title}, ${p.destination_name ?? ''}`} loading="lazy" />
-                <div>
-                  <h2 className="trip-row__title" style={{ fontSize: '1.3rem' }}>{p.title}</h2>
-                  <div className="trip-row__meta">{p.destination_name}, {nightsLabel(p.nights, p.duration_days)}, from {p.departure_city}</div>
-                  <div className="trip-row__meta">{p.seller_name}{p.seller_city ? `, ${p.seller_city}` : ''} {p.seller_verified && <span className="verified">Verified seller</span>}</div>
-                  {p.rating_avg !== null && p.review_count > 0 && <div className="trip-row__meta">Rated {Number(p.rating_avg).toFixed(1)} from {p.review_count} {p.review_count === 1 ? 'review' : 'reviews'}</div>}
-                </div>
-                <div className="trip-row__price"><b>{formatPaise(n?.price_paise ?? p.price_paise)}</b><span className="muted small">{p.occupancy_basis}</span>{n && <span className={n.seats_left <= 4 ? 'seats seats--few' : 'seats'}>Next: {formatDate(n.departure_date)}, {n.seats_left} left</span>}</div>
-              </Link>
-            )
-          })}
+        <div className="cards">
+          {trips.map((p) => <TripCard key={p.id} p={p} next={next.get(p.id)} />)}
         </div>
       )}
 
       {pages > 1 && (
-        <nav className="actions" style={{ marginTop: 24, alignItems: 'center' }} aria-label="Pages">
+        <nav className="actions" style={{ marginTop: 40, alignItems: 'center', justifyContent: 'center' }} aria-label="Pages">
           {page > 1 && <Link className="btn" href={params({ page: String(page - 1) })}>Previous</Link>}
           <span className="muted">Page {page} of {pages}</span>
           {page < pages && <Link className="btn" href={params({ page: String(page + 1) })}>Next</Link>}
