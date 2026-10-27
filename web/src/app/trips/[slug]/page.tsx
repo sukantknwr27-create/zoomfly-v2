@@ -8,6 +8,7 @@ import { abs } from '@/lib/site'
 import { JsonLd } from '@/components/JsonLd'
 import { getCurrentUser } from '@/lib/auth'
 import { StartChatButton } from '@/components/StartChatButton'
+import { IconCalendar, IconClock, IconMountain, IconPin, IconShield, IconStar, IconUsers } from '@/components/Icons'
 
 export const dynamic = 'force-dynamic'
 
@@ -78,8 +79,8 @@ export default async function TripPage({ params }: { params: { slug: string } })
           ],
         },
       ]} />
-      <p className="small">
-        <Link href="/">All trips</Link>
+      <p className="crumbs">
+        <Link href="/trips">All trips</Link>
         {pkg.destination_slug && (
           <>
             {' / '}
@@ -87,11 +88,16 @@ export default async function TripPage({ params }: { params: { slug: string } })
           </>
         )}
       </p>
-      <div className="page__head">
-        <h1>{pkg.title}</h1>
-        <p className="muted">
-          {pkg.destination_name}, {nightsLabel(pkg.nights, pkg.duration_days)}, from {pkg.departure_city}
-        </p>
+      <div className="page__head" style={{ marginBottom: 20 }}>
+        <h1 className="detail__title">{pkg.title}</h1>
+        <ul className="facts">
+          {pkg.destination_name && <li><IconPin />{pkg.destination_name}</li>}
+          {nightsLabel(pkg.nights, pkg.duration_days) && <li><IconClock />{nightsLabel(pkg.nights, pkg.duration_days)}</li>}
+          {pkg.departure_city && <li><IconCalendar />From {pkg.departure_city}</li>}
+          {pkg.min_group && pkg.max_group && <li><IconUsers />Groups of {pkg.min_group} to {pkg.max_group}</li>}
+          {pkg.difficulty_level && <li><IconMountain />{pkg.difficulty_level}</li>}
+          {pkg.rating_avg !== null && pkg.review_count > 0 && <li><IconStar />{Number(pkg.rating_avg).toFixed(1)} from {pkg.review_count} {pkg.review_count === 1 ? 'review' : 'reviews'}</li>}
+        </ul>
       </div>
 
       <div className="gallery">
@@ -102,10 +108,10 @@ export default async function TripPage({ params }: { params: { slug: string } })
       </div>
 
       <div className="detail">
-        <div>
+        <div className="detail__main">
           {pkg.description && <p>{pkg.description}</p>}
 
-          <h2>Day by day</h2>
+          <h2 style={{ marginTop: 40 }}>Day by day</h2>
           {itinerary.length === 0 ? (
             <p className="muted">The seller has not added a day-by-day plan.</p>
           ) : (
@@ -122,7 +128,7 @@ export default async function TripPage({ params }: { params: { slug: string } })
             </div>
           )}
 
-          <div className="lists section">
+          <div className="lists" style={{ marginTop: 40 }}>
             <div>
               <h3>What the price includes</h3>
               <ul className="plain-list">
@@ -141,7 +147,7 @@ export default async function TripPage({ params }: { params: { slug: string } })
             </div>
           </div>
 
-          <div className="section">
+          <div className="detail__block">
             <h2>Stay, food and travel</h2>
             <dl className="kv">
               {pkg.hotel_details && (<><dt>Stay</dt><dd>{pkg.hotel_details}</dd></>)}
@@ -155,7 +161,7 @@ export default async function TripPage({ params }: { params: { slug: string } })
             </dl>
           </div>
 
-          <div className="section">
+          <div className="detail__block">
             <h2>If you need to cancel</h2>
             <p>
               <strong>{policy?.label ?? pkg.cancellation_policy}</strong>
@@ -171,7 +177,7 @@ export default async function TripPage({ params }: { params: { slug: string } })
             <p className="muted small" style={{ marginTop: 12 }}>If the seller cancels, you get a full refund.</p>
           </div>
 
-          <div className="section">
+          <div className="detail__block">
             <h2>Traveller reviews</h2>
             {(reviews ?? []).length === 0 ? (
               <p className="muted">No reviews yet. Only people who have completed this trip can review it.</p>
@@ -188,8 +194,9 @@ export default async function TripPage({ params }: { params: { slug: string } })
           </div>
         </div>
 
-        <aside className="side panel" aria-label="Price and dates">
-          <h2 style={{ marginBottom: 4 }}>{formatPaise(pkg.price_paise)}</h2>
+        <aside id="book" className="side panel" aria-label="Price and dates">
+          <p className="small muted" style={{ margin: 0 }}>From</p>
+          <p className="side__price">{formatPaise(pkg.price_paise)}</p>
           <p className="muted small" style={{ marginBottom: 14 }}>
             {pkg.occupancy_basis}, {pkg.price_includes_taxes ? 'taxes included' : 'taxes extra'}
           </p>
@@ -197,16 +204,16 @@ export default async function TripPage({ params }: { params: { slug: string } })
             <strong>{pkg.seller_name}</strong>
             {pkg.seller_city ? `, ${pkg.seller_city}` : ''}
           </p>
-          {pkg.seller_verified && <p className="verified" style={{ marginBottom: 14 }}>Verified seller</p>}
+          {pkg.seller_verified && <p className="verified" style={{ marginBottom: 14 }}><IconShield />Verified seller</p>}
           <div style={{ margin: '4px 0 6px' }}>
-            {viewer ? <StartChatButton packageId={pkg.id} /> : <Link className="btn" href={`/login?next=/trips/${pkg.slug}`} style={{ display: 'block', textAlign: 'center' }}>Sign in to ask the seller a question</Link>}
+            {viewer ? <StartChatButton packageId={pkg.id} /> : <Link className="btn btn--block" href={`/login?next=/trips/${pkg.slug}`}>Sign in to ask the seller a question</Link>}
           </div>
           <h3 style={{ marginTop: 18 }}>Book a date</h3>
           <form className="form" action="/book" method="get" style={{ gap: 12 }}>
-            <fieldset style={{ border: 0, padding: 0, margin: 0 }}>
+            <fieldset style={{ border: 0, padding: 0, margin: 0, display: 'grid', gap: 8 }}>
               <legend className="sr-only">Departure date</legend>
               {departures.map((d, i) => (
-                <label key={d.id} className="check" style={{ padding: '6px 0' }}>
+                <label key={d.id} className="depart">
                   <input type="radio" name="departure" value={d.id} defaultChecked={i === 0} required />
                   <span>
                     {formatDate(d.departure_date, true)}
@@ -222,11 +229,18 @@ export default async function TripPage({ params }: { params: { slug: string } })
               <div className="field"><label htmlFor="children">Children</label><input id="children" name="children" type="number" min={0} max={20} defaultValue={0} /></div>
               <div className="field"><label htmlFor="infants">Infants</label><input id="infants" name="infants" type="number" min={0} max={10} defaultValue={0} /></div>
             </div>
-            <button className="btn btn--primary" type="submit">Continue to book</button>
+            <button className="btn btn--gold btn--block" type="submit">Continue to book</button>
             <span className="field__hint">Infants travel without a seat. You pay a small advance now and the balance later.</span>
           </form>
         </aside>
       </div>
+
+      {departures.length > 0 && (
+        <div className="mobilebar">
+          <div><span className="small muted">From</span><b>{formatPaise(pkg.price_paise)}</b></div>
+          <a className="btn btn--gold" href="#book">Book a date</a>
+        </div>
+      )}
     </div>
   )
 }
