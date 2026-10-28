@@ -111,7 +111,8 @@ export default async function TripPage({ params }: { params: { slug: string } })
         <div className="detail__main">
           {pkg.description && <p>{pkg.description}</p>}
 
-          <h2 style={{ marginTop: 40 }}>Day by day</h2>
+          <nav className="tabs tabs--sticky" aria-label="On this page" style={{ marginTop: 28 }}><a href="#itinerary">Itinerary</a><a href="#inclusions">Inclusions</a><a href="#cancellation">Cancellation</a><a href="#reviews">Reviews</a></nav>
+          <h2 id="itinerary" style={{ marginTop: 28, scrollMarginTop: 150 }}>Day by day</h2>
           {itinerary.length === 0 ? (
             <p className="muted">The seller has not added a day-by-day plan.</p>
           ) : (
@@ -128,7 +129,7 @@ export default async function TripPage({ params }: { params: { slug: string } })
             </div>
           )}
 
-          <div className="lists" style={{ marginTop: 40 }}>
+          <div id="inclusions" className="lists" style={{ marginTop: 40, scrollMarginTop: 150 }}>
             <div>
               <h3>What the price includes</h3>
               <ul className="plain-list">
@@ -162,7 +163,7 @@ export default async function TripPage({ params }: { params: { slug: string } })
           </div>
 
           <div className="detail__block">
-            <h2>If you need to cancel</h2>
+            <h2 id="cancellation" style={{ scrollMarginTop: 150 }}>If you need to cancel</h2>
             <p>
               <strong>{policy?.label ?? pkg.cancellation_policy}</strong>
               {policy?.summary ? `: ${policy.summary}` : ''}
@@ -178,7 +179,7 @@ export default async function TripPage({ params }: { params: { slug: string } })
           </div>
 
           <div className="detail__block">
-            <h2>Traveller reviews</h2>
+            <h2 id="reviews" style={{ scrollMarginTop: 150 }}>Traveller reviews</h2>
             {(reviews ?? []).length === 0 ? (
               <p className="muted">No reviews yet. Only people who have completed this trip can review it.</p>
             ) : (
