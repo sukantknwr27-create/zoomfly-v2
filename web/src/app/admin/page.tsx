@@ -2,6 +2,7 @@ import Link from 'next/link'
 import type { Metadata } from 'next'
 import { createClient } from '@/lib/supabase/server'
 import { requireAdmin } from '@/lib/auth'
+import { IconAlert, IconBag, IconChat, IconCompass, IconFile, IconLock, IconRupee, IconUsers, IconWallet } from '@/components/Icons'
 
 export const metadata: Metadata = { title: 'Admin', robots: { index: false } }
 export const dynamic = 'force-dynamic'
@@ -32,21 +33,18 @@ export default async function AdminHome() {
     ['/admin/privacy', 'Privacy requests', requests.count, 'Copy, correct or delete my data'],
     ['/admin/emails', 'Failed emails', failedMail.count, 'Retry after fixing the cause'],
   ]
+  const icons = [<IconUsers key="a" />, <IconCompass key="b" />, <IconAlert key="c" />, <IconRupee key="d" />, <IconWallet key="e" />, <IconChat key="f" />, <IconBag key="g" />, <IconLock key="h" />, <IconFile key="i" />]
   return (
     <div className="wrap page">
-      <div className="page__head"><h1>Admin</h1></div>
-      <div className="trip-list" style={{ background: 'transparent', border: 0, gap: 12 }}>
-        {tiles.map(([href, label, n, hint]) => (
-          <Link key={href} href={href} className="panel" style={{ display: 'flex', justifyContent: 'space-between', gap: 16, textDecoration: 'none', alignItems: 'center' }}>
-            <span><strong>{label}</strong><span className="muted small" style={{ display: 'block' }}>{hint}</span></span>
-            <span className={n ? 'pill pill--pending' : 'pill'} style={{ fontSize: '1.1rem' }}>{n ?? 0}</span>
+      <div className="page__head"><h1>Admin dashboard</h1><p className="muted" style={{ marginBottom: 0 }}>What needs your attention right now.</p></div>
+      <div className="statgrid">
+        {tiles.map(([href, label, n, hint], i) => (
+          <Link key={href} href={href} className={`stat${n ? ' stat--warn' : ''}`}>
+            <span className="stat__icon">{icons[i]}</span>
+            <div><small>{label}</small><b>{n ?? 0}</b><span className="hint">{hint}</span></div>
           </Link>
         ))}
       </div>
-      <h2 className="section">More</h2>
-      <ul className="chips">
-        {[['/admin/finance', 'Money overview and exports'], ['/admin/health', 'Site health'], ['/admin/destinations', 'Destinations']].map(([h, l]) => <li key={h}><Link className="chip" href={h}>{l}</Link></li>)}
-      </ul>
     </div>
   )
 }
