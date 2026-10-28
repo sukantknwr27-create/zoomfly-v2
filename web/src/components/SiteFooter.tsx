@@ -7,7 +7,7 @@ export function SiteFooter() {
       <div className="wrap">
         <div className="site-footer__grid">
           <div style={{ maxWidth: '44ch' }}>
-            <div className="brand">ZoomFly</div>
+            <div className="brand"><span><span className="brand__word">Zoom<i>fly</i></span><span className="brand__tag">TRAVEL MARKETPLACE</span></span></div>
             <p style={{ marginTop: 0 }}>ZoomFly lists tours from GST-registered operators we have checked. We show a trip only when a seller has real seats to sell.</p>
             {CONTACT_EMAIL && <p style={{ margin: 0 }}><a href={`mailto:${CONTACT_EMAIL}`}>{CONTACT_EMAIL}</a></p>}
           </div>
@@ -15,9 +15,17 @@ export function SiteFooter() {
             <h3>ZoomFly</h3>
             <Link href="/trips">Search trips</Link>
             <Link href="/destinations">Destinations</Link>
+            <Link href="/trip-planner">Trip planner</Link>
             <Link href="/how-it-works">How it works</Link>
             <Link href="/become-a-seller">Sell on ZoomFly</Link>
             <Link href="/contact">Contact</Link>
+          </nav>
+          <nav aria-label="Trust" className="site-footer__links">
+            <h3>Trust</h3>
+            <Link href="/trust">Trust centre</Link>
+            <Link href="/reviews">Traveller reviews</Link>
+            <Link href="/sellers">Verified sellers</Link>
+            <Link href="/trust#report">Report a problem</Link>
           </nav>
           <nav aria-label="Policies" className="site-footer__links">
             <h3>Policies</h3>

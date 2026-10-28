@@ -1,7 +1,7 @@
 import Link from 'next/link'
 import { getCurrentProfile } from '@/lib/auth'
 import { createClient } from '@/lib/supabase/server'
-import { IconMenu } from '@/components/Icons'
+import { IconBell, IconMenu, IconSparkle } from '@/components/Icons'
 
 export async function SiteHeader() {
   const profile = await getCurrentProfile()
@@ -12,14 +12,24 @@ export async function SiteHeader() {
   }
   const isSeller = profile?.role === 'seller'
   const isAdmin = profile?.role === 'admin'
-  const links: { href: string; label: string }[] = [
-    { href: '/trips', label: 'Trips' },
+  const main = [
+    { href: '/', label: 'Home' },
     { href: '/destinations', label: 'Destinations' },
+    { href: '/trips', label: 'Holiday packages' },
+    { href: '/trust', label: 'Trust centre' },
     ...(isSeller || isAdmin ? [] : [{ href: '/become-a-seller', label: 'Sell on ZoomFly' }]),
-    ...(isAdmin ? [{ href: '/admin', label: 'Admin' }] : []),
-    ...(isSeller ? [{ href: '/seller', label: 'Seller area' }, { href: '/seller/packages', label: 'Your trips' }, { href: '/seller/bookings', label: 'Bookings' }] : []),
-    ...(profile ? [{ href: '/bookings', label: 'My bookings' }, { href: '/messages', label: `Messages${unread > 0 ? ` (${unread})` : ''}` }, { href: '/account', label: 'Account' }] : []),
   ]
+  const mine = profile
+    ? [
+        { href: '/bookings', label: 'My bookings' },
+        { href: '/messages', label: `Messages${unread > 0 ? ` (${unread})` : ''}` },
+        ...(isSeller ? [{ href: '/seller', label: 'Seller area' }, { href: '/seller/packages', label: 'Your trips' }] : []),
+        ...(isAdmin ? [{ href: '/admin', label: 'Admin' }] : []),
+        { href: '/account', label: 'Account settings' },
+      ]
+    : []
+  const initial = (profile?.full_name ?? 'Z').trim().charAt(0).toUpperCase()
+  const first = (profile?.full_name ?? '').trim().split(' ')[0]
   return (
     <header className="site-header">
       <div className="wrap site-header__bar">
@@ -27,31 +37,48 @@ export async function SiteHeader() {
           <span className="brand__mark" aria-hidden="true">
             <svg viewBox="0 0 24 24"><path d="M3 15c4-1 7-4 9-9 2 5 5 8 9 9" /><path d="M12 6v14" /></svg>
           </span>
-          ZoomFly
+          <span><span className="brand__word">Zoom<i>fly</i></span><span className="brand__tag">TRAVEL MARKETPLACE</span></span>
         </Link>
 
         <nav className="nav" aria-label="Main">
-          {links.map((l) => <Link key={l.href} href={l.href}>{l.label}</Link>)}
+          {main.map((l) => <Link key={l.href} href={l.href}>{l.label}</Link>)}
+        </nav>
+
+        <div className="nav-right nav">
+          <Link href="/trip-planner" className="nav-pill"><IconSparkle />Trip planner</Link>
           {profile ? (
-            <form action="/auth/signout" method="post"><button type="submit">Sign out</button></form>
+            <>
+              <Link href="/messages" className="iconbtn" aria-label={unread > 0 ? `Messages, ${unread} unread` : 'Messages'}>
+                <IconBell />{unread > 0 && <span className="iconbtn__badge">{unread}</span>}
+              </Link>
+              <details className="me">
+                <summary><span className="avatar" aria-hidden="true">{initial}</span>{first}</summary>
+                <div className="me__panel">
+                  {mine.map((l) => <Link key={l.href} href={l.href}>{l.label}</Link>)}
+                  <form action="/auth/signout" method="post"><button type="submit">Sign out</button></form>
+                </div>
+              </details>
+            </>
           ) : (
             <>
               <Link href="/login">Sign in</Link>
-              <Link href="/signup" className="btn btn--primary">Create account</Link>
+              <Link href="/signup" className="btn btn--primary">Sign up</Link>
             </>
           )}
-        </nav>
+        </div>
 
         <details className="menu">
           <summary aria-label="Open menu"><IconMenu /></summary>
           <div className="menu__panel">
-            {links.map((l) => <Link key={l.href} href={l.href}>{l.label}</Link>)}
+            {main.map((l) => <Link key={l.href} href={l.href}>{l.label}</Link>)}
+            <Link href="/trip-planner">Trip planner</Link>
+            {mine.map((l) => <Link key={l.href} href={l.href}>{l.label}</Link>)}
             {profile ? (
               <form action="/auth/signout" method="post"><button type="submit">Sign out</button></form>
             ) : (
               <>
                 <Link href="/login">Sign in</Link>
-                <Link href="/signup" className="btn btn--primary" style={{ marginTop: 6 }}>Create account</Link>
+                <Link href="/signup" className="btn btn--primary" style={{ marginTop: 6 }}>Sign up</Link>
               </>
             )}
           </div>
