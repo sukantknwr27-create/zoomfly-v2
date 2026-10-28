@@ -6,6 +6,7 @@ import type { PublicDeparture, PublicDestination, PublicPackage } from '@/lib/ty
 import { SITE_NAME, abs } from '@/lib/site'
 import { JsonLd } from '@/components/JsonLd'
 import { TripCard } from '@/components/TripCard'
+import { Banner } from '@/components/Banner'
 import { IconCheck, IconSearch, IconSeat, IconShield, IconTag, IconWallet } from '@/components/Icons'
 
 export const dynamic = 'force-dynamic'
@@ -50,40 +51,19 @@ export default async function Home({ searchParams }: { searchParams: { destinati
     <>
       <JsonLd data={{ '@context': 'https://schema.org', '@type': 'Organization', name: SITE_NAME, url: abs('/'), description: 'A marketplace for tour packages from verified, GST-registered Indian operators.' }} />
 
-      <section className="hero">
-        <svg className="hero__contours" viewBox="0 0 1200 600" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
-          <path d="M-20 420C150 360 260 470 430 410S720 300 900 360s250 40 340-30" />
-          <path d="M-20 380C150 320 260 430 430 370S720 260 900 320s250 40 340-30" />
-          <path d="M-20 340C150 280 260 390 430 330S720 220 900 280s250 40 340-30" />
-          <path d="M-20 300C150 240 260 350 430 290S720 180 900 240s250 40 340-30" />
-          <path d="M-20 260C150 200 260 310 430 250S720 140 900 200s250 40 340-30" />
-          <path d="M-20 220C150 160 260 270 430 210S720 100 900 160s250 40 340-30" />
-        </svg>
-        <div className="wrap hero__grid">
-          <div>
-            <h1>Trips from tour operators we have checked.</h1>
-            <p className="hero__lead">
-              Every seller on ZoomFly is GST-registered and verified. Prices are all-in, dates are the seller&rsquo;s own, and the seat count is the seats actually left.
-            </p>
-          </div>
-          {collage.length > 0 ? (
-            <div className="collage" aria-label="Trips on ZoomFly">
-              {collage.map((p) => (
-                <Link key={p.id} href={`/trips/${p.slug}`}>
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={p.photos[0]} alt={`${p.title}, ${p.destination_name ?? ''}`} />
-                  <span>{p.destination_name}</span>
-                </Link>
-              ))}
-            </div>
-          ) : (
-            <div className="hero__emptycard">
-              <h2>Opening for bookings soon</h2>
-              <p style={{ marginBottom: 0 }}>A trip goes live here only when a verified seller has published real dates with seats. Run tours? <Link href="/become-a-seller">List your trips</Link>.</p>
-            </div>
-          )}
-        </div>
-      </section>
+      <Banner
+        tall
+        photo={collage[0]?.photos[0]}
+        title="Discover India with verified tour operators"
+        sub="Every seller is GST-registered and checked. Prices are all-in, dates are the seller’s own, and the seat count is the seats actually left."
+        side={collage.length === 0 ? (
+          <>
+            <h2>Opening for bookings soon</h2>
+            <p>A trip goes live here only when a verified seller has published real dates with seats.</p>
+            <Link className="btn btn--gold" href="/become-a-seller">List your trips</Link>
+          </>
+        ) : undefined}
+      />
 
       <div className="wrap finder">
         <form className="finder__bar" action="/trips" method="get" role="search">
