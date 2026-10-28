@@ -1,4 +1,5 @@
 import Link from 'next/link'
+import { AuthShell } from '@/components/AuthShell'
 import type { Metadata } from 'next'
 import { requestPasswordReset } from '../actions'
 import { Turnstile } from '@/components/Turnstile'
@@ -7,7 +8,7 @@ export const metadata: Metadata = { title: 'Reset your password', robots: { inde
 
 export default function Forgot({ searchParams }: { searchParams: { sent?: string; error?: string } }) {
   return (
-    <div className="wrap page">
+    <AuthShell>
       <div className="page__head"><h1>Reset your password</h1></div>
       {searchParams.error && <p className="notice notice--error" role="alert">{searchParams.error}</p>}
       {searchParams.sent ? (
@@ -22,6 +23,6 @@ export default function Forgot({ searchParams }: { searchParams: { sent?: string
         </form>
       )}
       <p className="muted" style={{ marginTop: 20 }}><Link href="/login">Back to sign in</Link></p>
-    </div>
+    </AuthShell>
   )
 }
