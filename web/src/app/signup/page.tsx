@@ -1,4 +1,5 @@
 import Link from 'next/link'
+import { AuthShell } from '@/components/AuthShell'
 import type { Metadata } from 'next'
 import { signUp } from '../actions'
 import { Turnstile } from '@/components/Turnstile'
@@ -8,7 +9,7 @@ export const metadata: Metadata = { title: 'Create an account', robots: { index:
 export default function Signup({ searchParams }: { searchParams: { error?: string; next?: string } }) {
   const next = searchParams.next ?? '/'
   return (
-    <div className="wrap page">
+    <AuthShell>
       <div className="page__head">
         <h1>Create your account</h1>
         <p className="muted">One account works for booking trips and, later, for selling them.</p>
@@ -42,6 +43,6 @@ export default function Signup({ searchParams }: { searchParams: { error?: strin
           Already registered? <Link href={`/login?next=${encodeURIComponent(next)}`}>Sign in</Link>
         </p>
       </form>
-    </div>
+    </AuthShell>
   )
 }
