@@ -1,4 +1,5 @@
 import Link from 'next/link'
+import { AuthShell } from '@/components/AuthShell'
 import type { Metadata } from 'next'
 import { signIn } from '../actions'
 
@@ -7,7 +8,7 @@ export const metadata: Metadata = { title: 'Sign in', robots: { index: false } }
 export default function Login({ searchParams }: { searchParams: { error?: string; notice?: string; next?: string } }) {
   const next = searchParams.next ?? '/'
   return (
-    <div className="wrap page">
+    <AuthShell>
       <div className="page__head">
         <h1>Sign in</h1>
       </div>
@@ -24,13 +25,13 @@ export default function Login({ searchParams }: { searchParams: { error?: string
           <input id="password" name="password" type="password" autoComplete="current-password" required />
         </div>
         <div className="actions">
-          <button className="btn btn--primary" type="submit">Sign in</button>
+          <button className="btn btn--primary btn--block" type="submit">Sign in</button>
         </div>
         <p className="muted"><Link href="/forgot-password">Forgot your password?</Link></p>
         <p className="muted">
           New to ZoomFly? <Link href={`/signup?next=${encodeURIComponent(next)}`}>Create an account</Link>
         </p>
       </form>
-    </div>
+    </AuthShell>
   )
 }
