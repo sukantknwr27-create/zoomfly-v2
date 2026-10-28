@@ -7,6 +7,7 @@ import { formatDate, formatPaise } from '@/lib/format'
 import { previewAmounts, type Settings } from '@/lib/booking'
 import type { PublicDeparture, PublicPackage } from '@/lib/types'
 import { BookingForm } from '@/components/BookingForm'
+import { Steps } from '@/components/Steps'
 
 export const metadata: Metadata = { title: 'Book your trip' }
 export const dynamic = 'force-dynamic'
@@ -42,6 +43,7 @@ export default async function Book({ searchParams }: { searchParams: SP }) {
 
   return (
     <div className="wrap page">
+      <Steps current={2} />
       <p className="small"><Link href={`/trips/${pkg.slug}`}>Back to the trip</Link></p>
       <div className="page__head">
         <h1>Book {pkg.title}</h1>
