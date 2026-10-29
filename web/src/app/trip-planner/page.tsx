@@ -1,4 +1,5 @@
 import Link from 'next/link'
+import { getSaved } from '@/lib/saved'
 import type { Metadata } from 'next'
 import { createClient } from '@/lib/supabase/server'
 import { Banner } from '@/components/Banner'
@@ -47,6 +48,9 @@ export default async function Planner({ searchParams }: { searchParams: SP }) {
     }
   }
 
+  const saved = await getSaved()
+  const here = '/trip-planner'
+
   return (
     <>
       <Banner title="Trip planner" sub="Tell us where, when and how many. We match real open departures that still have seats for your group." />
@@ -72,7 +76,7 @@ export default async function Planner({ searchParams }: { searchParams: SP }) {
               <div className="panel empty"><IconCompass /><p><strong>Nothing has {people} {people === 1 ? 'seat' : 'seats'} free with those choices.</strong></p><p className="muted">Try another month, a wider budget or fewer travellers.</p><Link className="btn btn--primary" href="/trips">Browse all trips</Link></div>
             ) : (
               <div className="rows">
-                {matches.map(({ p, d }) => <TripRow key={p.id} p={p} next={d} note={`${people} ${people === 1 ? 'traveller' : 'travellers'}: about ${formatPaise(d.price_paise * people)}`} />)}
+                {matches.map(({ p, d }) => <TripRow key={p.id} p={p} next={d} saved={saved} here="/trip-planner" note={`${people} ${people === 1 ? 'traveller' : 'travellers'}: about ${formatPaise(d.price_paise * people)}`} />)}
               </div>
             )}
             <p className="muted small" style={{ marginTop: 16 }}>Estimates multiply the per-person price by the number of travellers. The exact total, including any extras, is shown before you pay.</p>
