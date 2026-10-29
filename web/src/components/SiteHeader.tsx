@@ -13,7 +13,6 @@ export async function SiteHeader() {
   const isSeller = profile?.role === 'seller'
   const isAdmin = profile?.role === 'admin'
   const main = [
-    { href: '/', label: 'Home' },
     { href: '/destinations', label: 'Destinations' },
     { href: '/trips', label: 'Holiday packages' },
     { href: '/trust', label: 'Trust centre' },
@@ -22,6 +21,7 @@ export async function SiteHeader() {
   const mine = profile
     ? [
         { href: '/bookings', label: 'My bookings' },
+        { href: '/saved', label: 'Saved trips' },
         { href: '/messages', label: `Messages${unread > 0 ? ` (${unread})` : ''}` },
         ...(isSeller ? [{ href: '/seller', label: 'Seller area' }, { href: '/seller/packages', label: 'Your trips' }] : []),
         ...(isAdmin ? [{ href: '/admin', label: 'Admin' }] : []),

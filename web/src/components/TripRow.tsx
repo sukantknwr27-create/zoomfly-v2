@@ -1,15 +1,19 @@
 import Link from 'next/link'
 import { formatDate, formatPaise, nightsLabel } from '@/lib/format'
 import type { PublicDeparture, PublicPackage } from '@/lib/types'
+import type { SavedInfo } from '@/lib/saved'
+import { SaveButton } from '@/components/SaveButton'
 import { IconClock, IconCompass, IconPin, IconShield } from '@/components/Icons'
 import { Stars } from '@/components/Stars'
 
 // A search result row. Facts come straight from the listing; nothing is invented.
-export function TripRow({ p, next, note }: { p: PublicPackage; next?: PublicDeparture; note?: string }) {
+export function TripRow({ p, next, note, saved, here }: { p: PublicPackage; next?: PublicDeparture; note?: string; saved?: SavedInfo; here?: string }) {
   const photo = p.photos?.[0]
   const hasRating = p.rating_avg !== null && p.review_count > 0
   const incl = (p.inclusions ?? []).slice(0, 4)
   return (
+    <div className="cardwrap">
+    {saved && <SaveButton packageId={p.id} saved={saved} here={here ?? '/trips'} variant="row" />}
     <Link href={`/trips/${p.slug}`} className="rrow">
       <div className="rrow__media">
         {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -51,5 +55,6 @@ export function TripRow({ p, next, note }: { p: PublicPackage; next?: PublicDepa
         </div>
       </div>
     </Link>
+    </div>
   )
 }

@@ -4,11 +4,14 @@ import { Shell } from '@/components/Shell'
 import type { NavItem } from '@/components/SideNav'
 import { IconAlert, IconBag, IconBuilding, IconChat, IconFile, IconFlag, IconGrid, IconRupee, IconSettings, IconShield, IconUser, IconCompass, IconCalendar, IconLock, IconUsers } from '@/components/Icons'
 
+const IconHeartNav = () => (<svg viewBox="0 0 24 24" className="icon" aria-hidden="true"><path d="M12 20s-7.5-4.6-7.5-10A4.3 4.3 0 0112 7.4 4.3 4.3 0 0119.5 10c0 5.4-7.5 10-7.5 10z" /></svg>)
+
 export async function AccountShell({ children }: { children: ReactNode }) {
   const profile = await getCurrentProfile()
   if (!profile) return <>{children}</>
   const items: NavItem[] = [
     { href: '/bookings', label: 'My bookings', icon: <IconBag /> },
+    { href: '/saved', label: 'Saved trips', icon: <IconHeartNav /> },
     { href: '/messages', label: 'Messages', icon: <IconChat /> },
     { href: '/account', label: 'Account settings', icon: <IconSettings /> },
   ]

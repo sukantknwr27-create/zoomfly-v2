@@ -1,13 +1,17 @@
 import Link from 'next/link'
 import { formatDate, formatPaise, nightsLabel } from '@/lib/format'
 import type { PublicDeparture, PublicPackage } from '@/lib/types'
+import type { SavedInfo } from '@/lib/saved'
+import { SaveButton } from '@/components/SaveButton'
 import { IconClock, IconCompass, IconPin, IconShield, IconStar } from '@/components/Icons'
 
 // One trip, as a card. Everything shown comes from the database: no invented ratings, counts or urgency.
-export function TripCard({ p, next }: { p: PublicPackage; next?: PublicDeparture }) {
+export function TripCard({ p, next, saved, here }: { p: PublicPackage; next?: PublicDeparture; saved?: SavedInfo; here?: string }) {
   const photo = p.photos?.[0]
   const hasRating = p.rating_avg !== null && p.review_count > 0
   return (
+    <div className="cardwrap">
+    {saved && <SaveButton packageId={p.id} saved={saved} here={here ?? '/trips'} variant="card" />}
     <Link href={`/trips/${p.slug}`} className="card">
       <div className="card__media">
         {photo ? (
@@ -48,5 +52,6 @@ export function TripCard({ p, next }: { p: PublicPackage; next?: PublicDeparture
         </div>
       </div>
     </Link>
+    </div>
   )
 }
