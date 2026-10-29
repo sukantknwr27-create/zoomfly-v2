@@ -1,4 +1,5 @@
 import Link from 'next/link'
+import { getSaved } from '@/lib/saved'
 import { notFound } from 'next/navigation'
 import type { Metadata } from 'next'
 import { createClient } from '@/lib/supabase/server'
@@ -41,6 +42,9 @@ export default async function SellerPage({ params }: { params: { id: string } })
   const titles = new Map(trips.map((t) => [t.id, { title: t.title, slug: t.slug }]))
   const place = [s.city, s.state].filter(Boolean).join(', ')
 
+  const saved = await getSaved()
+  const here = `/sellers/${s.id}`
+
   return (
     <>
       <Banner crumbs={<><Link href="/sellers">Sellers</Link> / {s.business_name}</>} title={<span style={{ display: 'none' }}>{s.business_name}</span>}>
@@ -65,7 +69,7 @@ export default async function SellerPage({ params }: { params: { id: string } })
           <div>
             <section id="trips" style={{ scrollMarginTop: 90 }}>
               <h2>Trips by {s.business_name}</h2>
-              {trips.length === 0 ? <div className="panel"><p className="muted" style={{ margin: 0 }}>No trips are open for booking right now.</p></div> : <div className="rows">{trips.map((p) => <TripRow key={p.id} p={p} next={next.get(p.id)} />)}</div>}
+              {trips.length === 0 ? <div className="panel"><p className="muted" style={{ margin: 0 }}>No trips are open for booking right now.</p></div> : <div className="rows">{trips.map((p) => <TripRow key={p.id} p={p} next={next.get(p.id)} saved={saved} here={here} />)}</div>}
             </section>
             <section id="reviews" className="section" style={{ scrollMarginTop: 90 }}>
               <h2>Traveller reviews</h2>
