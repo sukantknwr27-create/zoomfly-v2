@@ -1,4 +1,5 @@
 import Link from 'next/link'
+import { getSaved } from '@/lib/saved'
 import type { Metadata } from 'next'
 import { createClient } from '@/lib/supabase/server'
 import { TripRow } from '@/components/TripRow'
@@ -85,6 +86,9 @@ export default async function Trips({ searchParams }: { searchParams: SP }) {
   const DUR: [string, string][] = [['', 'Any length'], ['short', 'Up to 3 days'], ['week', '4 to 7 days'], ['long', '8 days or more']]
   const RAT: [string, string][] = [['', 'Any rating'], ['4', '4.0 and above'], ['3.5', '3.5 and above']]
 
+  const saved = await getSaved()
+  const here = params({ page: String(page) })
+
   return (
     <>
       <Banner title="Find your holiday package" sub="Tours from verified operators, with real dates and seats left.">
@@ -136,7 +140,7 @@ export default async function Trips({ searchParams }: { searchParams: SP }) {
               <Link className="btn btn--primary" href="/trip-planner">Try the trip planner</Link>
             </div>
           ) : (
-            <div className="rows">{trips.map((p) => <TripRow key={p.id} p={p} next={next.get(p.id)} />)}</div>
+            <div className="rows">{trips.map((p) => <TripRow key={p.id} p={p} next={next.get(p.id)} saved={saved} here={here} />)}</div>
           )}
           {pages > 1 && (
             <nav className="actions" style={{ marginTop: 32, alignItems: 'center', justifyContent: 'center' }} aria-label="Pages">
