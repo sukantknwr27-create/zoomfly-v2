@@ -1,4 +1,5 @@
 import Link from 'next/link'
+import { getSaved } from '@/lib/saved'
 import type { Metadata } from 'next'
 import { createClient } from '@/lib/supabase/server'
 import { formatPaise } from '@/lib/format'
@@ -46,6 +47,9 @@ export default async function Home({ searchParams }: { searchParams: { destinati
   for (const p of packages) if (p.destination_slug && p.photos?.[0] && !photoByDest.has(p.destination_slug)) photoByDest.set(p.destination_slug, p.photos[0])
   const collage = packages.filter((p) => p.photos?.[0]).slice(0, 3)
   const months = Array.from({ length: 12 }, (_, i) => { const d = new Date(); d.setUTCDate(1); d.setUTCMonth(d.getUTCMonth() + i); return { v: d.toISOString().slice(0, 7), label: d.toLocaleDateString('en-IN', { month: 'long', year: 'numeric', timeZone: 'UTC' }) } })
+
+  const saved = await getSaved()
+  const here = slug ? `/?destination=${slug}` : '/'
 
   return (
     <>
@@ -164,7 +168,7 @@ export default async function Home({ searchParams }: { searchParams: { destinati
             </div>
           ) : (
             <div className="cards">
-              {packages.slice(0, 9).map((p) => <TripCard key={p.id} p={p} next={byPackage.get(p.id)} />)}
+              {packages.slice(0, 9).map((p) => <TripCard key={p.id} p={p} next={byPackage.get(p.id)} saved={saved} here={here} />)}
             </div>
           )}
         </section>
