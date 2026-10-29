@@ -1,4 +1,5 @@
 import Link from 'next/link'
+import { getSaved } from '@/lib/saved'
 import type { Metadata } from 'next'
 import { notFound } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
@@ -32,6 +33,9 @@ export default async function DestinationPage({ params }: { params: { slug: stri
   const next = new Map<string, PublicDeparture>()
   for (const d of (deps ?? []) as PublicDeparture[]) if (!next.has(d.package_id)) next.set(d.package_id, d)
 
+  const saved = await getSaved()
+  const here = `/destinations/${params.slug}`
+
   return (
     <div className="wrap page">
       <JsonLd data={[
@@ -51,7 +55,7 @@ export default async function DestinationPage({ params }: { params: { slug: stri
         <p>{dest.description || `${trips.length} ${trips.length === 1 ? 'trip is' : 'trips are'} open for booking${dest.state ? ` in ${dest.state}` : ''}. Each comes from a verified seller, with real dates and seats.`}</p>
       </section>
       <div className="cards">
-        {trips.map((p) => <TripCard key={p.id} p={p} next={next.get(p.id)} />)}
+        {trips.map((p) => <TripCard key={p.id} p={p} next={next.get(p.id)} saved={saved} here={here} />)}
       </div>
     </div>
   )
