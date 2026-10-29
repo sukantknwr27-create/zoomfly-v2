@@ -8,6 +8,8 @@ import { abs } from '@/lib/site'
 import { JsonLd } from '@/components/JsonLd'
 import { getCurrentUser } from '@/lib/auth'
 import { StartChatButton } from '@/components/StartChatButton'
+import { SaveButton } from '@/components/SaveButton'
+import { getSaved } from '@/lib/saved'
 import { IconCalendar, IconClock, IconMountain, IconPin, IconShield, IconStar, IconUsers } from '@/components/Icons'
 
 export const dynamic = 'force-dynamic'
@@ -43,6 +45,7 @@ export default async function TripPage({ params }: { params: { slug: string } })
     supabase.from('cancellation_policy_codes').select('label, summary').eq('code', pkg.cancellation_policy ?? '').maybeSingle(),
     supabase.from('public_reviews').select('id, overall, matched_listing, comment, reviewer_first_name, created_at').eq('package_id', pkg.id).order('created_at', { ascending: false }).limit(10),
   ])
+  const saved = await getSaved()
   const departures = (deps ?? []) as PublicDeparture[]
   const tierRows = (tiers ?? []) as { min_days_before: number; refund_pct: number }[]
   const itinerary = Array.isArray(pkg.itinerary) ? pkg.itinerary : []
@@ -90,6 +93,7 @@ export default async function TripPage({ params }: { params: { slug: string } })
       </p>
       <div className="page__head" style={{ marginBottom: 20 }}>
         <h1 className="detail__title">{pkg.title}</h1>
+        <div style={{ marginBottom: 12 }}><SaveButton packageId={pkg.id} saved={saved} here={`/trips/${pkg.slug}`} variant="inline" /></div>
         <ul className="facts">
           {pkg.destination_name && <li><IconPin />{pkg.destination_name}</li>}
           {nightsLabel(pkg.nights, pkg.duration_days) && <li><IconClock />{nightsLabel(pkg.nights, pkg.duration_days)}</li>}
