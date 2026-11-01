@@ -3,7 +3,7 @@ import type { Metadata } from 'next'
 import { notFound } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { requireUser } from '@/lib/auth'
-import { formatDate, formatPaise } from '@/lib/format'
+import { formatDate, formatPaise, formatSlot, formatTime } from '@/lib/format'
 import { BOOKING_LABEL, bookingPill, refundPct } from '@/lib/booking'
 import type { BookingRow } from '@/lib/payments'
 import { PayButton } from '@/components/PayButton'
@@ -70,7 +70,7 @@ export default async function BookingPage({ params }: { params: { id: string } }
         <div className="panel">
           <h2>The trip</h2>
           <dl className="kv">
-            <dt>Leaves</dt><dd>{formatDate(b.departure_date, true)}</dd>
+            <dt>{b.departure_time ? 'Starts' : 'Leaves'}</dt><dd>{formatSlot(b.departure_date, b.departure_time, true)}</dd>
             <dt>Back</dt><dd>{formatDate(b.trip_end_date, true)}</dd>
             <dt>Seats</dt><dd>{b.seats} ({b.adults} {b.adults === 1 ? 'adult' : 'adults'}{b.children ? `, ${b.children} ${b.children === 1 ? 'child' : 'children'}` : ''}{b.infants ? `, ${b.infants} ${b.infants === 1 ? 'infant' : 'infants'}` : ''})</dd>
             <dt>Travellers</dt><dd>{(b.traveller_details ?? []).map((t) => t.name).filter(Boolean).join(', ')}</dd>
