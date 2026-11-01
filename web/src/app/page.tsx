@@ -25,7 +25,7 @@ export default async function Home({ searchParams }: { searchParams: { destinati
   const { data: dests } = await supabase.from('public_destinations').select('id, slug, name, state, package_count').order('name')
   const destinations = (dests ?? []) as PublicDestination[]
 
-  let q = supabase.from('public_packages').select('*').order('is_featured', { ascending: false }).order('next_departure_date', { ascending: true }).limit(40)
+  let q = supabase.from('public_packages').select('*').eq('kind', 'package').order('is_featured', { ascending: false }).order('next_departure_date', { ascending: true }).limit(40)
   if (slug) q = q.eq('destination_slug', slug)
   const { data: pk } = await q
   const packages = (pk ?? []) as PublicPackage[]
@@ -41,6 +41,15 @@ export default async function Home({ searchParams }: { searchParams: { destinati
   const leaving = departures.slice(0, 5)
   const byId = new Map(packages.map((p) => [p.id, p]))
   const activeDest = destinations.find((d) => d.slug === slug)
+
+  // activities: shown only when some are open for booking
+  let actQ = supabase.from('public_packages').select('*').eq('kind', 'activity').order('is_featured', { ascending: false }).order('next_departure_date', { ascending: true }).limit(4)
+  if (slug) actQ = actQ.eq('destination_slug', slug)
+  const { data: ak } = await actQ
+  const activities = (ak ?? []) as PublicPackage[]
+  const { data: adeps } = activities.length ? await supabase.from('public_package_departures').select('*').in('package_id', activities.map((a) => a.id)).order('departure_date').order('start_time') : { data: [] as PublicDeparture[] }
+  const actNext = new Map<string, PublicDeparture>()
+  for (const d of (adeps ?? []) as PublicDeparture[]) if (!actNext.has(d.package_id)) actNext.set(d.package_id, d)
 
   // a real photo per destination, taken from the trips that are actually open there (no stock fallbacks)
   const photoByDest = new Map<string, string>()
@@ -172,6 +181,18 @@ export default async function Home({ searchParams }: { searchParams: { destinati
             </div>
           )}
         </section>
+
+        {activities.length > 0 && (
+          <section className="section" aria-label="Activities">
+            <div className="section__head">
+              <div><h2>Activities and experiences</h2><p className="muted">Day trips, adventure and food. Pick a date and a time slot.</p></div>
+              <Link className="link-more" href="/activities">See all activities</Link>
+            </div>
+            <div className="cards" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))' }}>
+              {activities.map((p) => <TripCard key={p.id} p={p} next={actNext.get(p.id)} saved={saved} here={here} />)}
+            </div>
+          </section>
+        )}
 
         <section className="section" aria-label="For tour operators">
           <div className="band">
