@@ -7,10 +7,10 @@ import { STATUS_LABEL, statusPill } from '@/lib/packages'
 import { formatDate, formatPaise } from '@/lib/format'
 import type { ListingStatus } from '@/lib/types'
 
-export const metadata: Metadata = { title: 'Your trips' }
+export const metadata: Metadata = { title: 'Your trips and activities' }
 export const dynamic = 'force-dynamic'
 
-type Row = { id: string; title: string; slug: string; listing_status: ListingStatus; price_paise: number | null; review_note: string | null; package_departures: { departure_date: string; status: string; total_seats: number; booked_seats: number }[] }
+type Row = { id: string; title: string; kind: 'package' | 'activity'; slug: string; listing_status: ListingStatus; price_paise: number | null; review_note: string | null; package_departures: { departure_date: string; status: string; total_seats: number; booked_seats: number }[] }
 
 export default async function SellerPackages() {
   await requireUser('/seller/packages')
@@ -19,7 +19,7 @@ export default async function SellerPackages() {
   if (!seller) redirect('/seller/apply')
   const { data } = await supabase
     .from('packages')
-    .select('id, title, slug, listing_status, price_paise, review_note, package_departures(departure_date, status, total_seats, booked_seats)')
+    .select('id, title, kind, slug, listing_status, price_paise, review_note, package_departures(departure_date, status, total_seats, booked_seats)')
     .order('created_at', { ascending: false })
   const rows = (data ?? []) as Row[]
   const today = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Kolkata' })
@@ -29,13 +29,13 @@ export default async function SellerPackages() {
       <p className="small"><Link href="/seller">Seller area</Link></p>
       <div className="page__head" style={{ display: 'flex', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap', alignItems: 'baseline' }}>
         <h1>Your trips</h1>
-        {seller.status === 'approved' && <Link className="btn btn--primary" href="/seller/packages/new">Add a trip</Link>}
+        {seller.status === 'approved' && <Link className="btn btn--primary" href="/seller/packages/new">Add a trip or activity</Link>}
       </div>
       {seller.status !== 'approved' && <p className="notice notice--wait">You can add trips once your seller account is approved.</p>}
       {rows.length === 0 ? (
         <div className="panel">
           <p><strong>You have not added a trip yet.</strong></p>
-          <p className="muted">Add a trip with its photos and dates. We review it, and it goes live when it is approved.</p>
+          <p className="muted">Add a trip or activity with its photos and dates. We review it, and it goes live when it is approved.</p>
         </div>
       ) : (
         <table className="table">
@@ -46,7 +46,7 @@ export default async function SellerPackages() {
               const next = open.map((d) => d.departure_date).sort()[0]
               return (
                 <tr key={r.id}>
-                  <td><Link href={`/seller/packages/${r.id}`}><strong>{r.title}</strong></Link></td>
+                  <td><Link href={`/seller/packages/${r.id}`}><strong>{r.title}</strong></Link>{r.kind === 'activity' && <span className="tag tag--plain" style={{ marginLeft: 8 }}>Activity</span>}</td>
                   <td>
                     <span className={statusPill(r.listing_status)}>{STATUS_LABEL[r.listing_status]}</span>
                     {r.listing_status === 'changes_requested' && r.review_note && <div className="small muted" style={{ marginTop: 6, maxWidth: '36ch' }}>{r.review_note}</div>}

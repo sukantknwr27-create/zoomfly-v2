@@ -23,8 +23,9 @@ export async function createPackage(formData: FormData) {
   const { supabase } = await session()
   const title = str(formData, 'title')
   const destination_id = str(formData, 'destination_id') || null
-  if (title.length < 5) redirect('/seller/packages/new?error=' + encodeURIComponent('Give the trip a title of at least 5 characters.'))
-  const { data, error } = await supabase.from('packages').insert({ title, destination_id, slug: '' }).select('id').single()
+  const kind = str(formData, 'kind') === 'activity' ? 'activity' : 'package'
+  if (title.length < 5) redirect('/seller/packages/new?error=' + encodeURIComponent('Give the listing a title of at least 5 characters.'))
+  const { data, error } = await supabase.from('packages').insert({ title, destination_id, slug: '', kind, ...(kind === 'activity' ? { duration_days: 1, nights: 0, occupancy_basis: 'per person' } : {}) }).select('id').single()
   if (error || !data) redirect('/seller/packages/new?error=' + encodeURIComponent(error?.message?.includes('approved sellers') ? 'Only approved sellers can add trips.' : 'Could not create the trip. Try again.'))
   redirect(`/seller/packages/${data.id}?ok=${encodeURIComponent('Draft created. Fill in the details below.')}`)
 }
@@ -34,13 +35,21 @@ export async function savePackage(formData: FormData) {
   const intent = str(formData, 'intent') // 'save' | 'submit'
   const { supabase } = await session()
 
-  const { data: before } = await supabase.from('packages').select('listing_status').eq('id', id).maybeSingle()
+  const { data: before } = await supabase.from('packages').select('listing_status, kind').eq('id', id).maybeSingle()
   if (!before) redirect('/seller/packages')
+  const act = before.kind === 'activity'
 
   const title = str(formData, 'title')
   if (title.length < 5) back(id, 'error', 'Give the trip a title of at least 5 characters.')
-  const duration_days = intOrNull(str(formData, 'duration_days'))
-  const nights = intOrNull(str(formData, 'nights'))
+  const duration_days = act ? 1 : intOrNull(str(formData, 'duration_days'))
+  const nights = act ? 0 : intOrNull(str(formData, 'nights'))
+  const hoursRaw = str(formData, 'duration_hours')
+  const duration_hours = act && hoursRaw ? Number(hoursRaw) : null
+  if (act && hoursRaw && (!Number.isFinite(duration_hours) || duration_hours! <= 0 || duration_hours! > 72)) back(id, 'error', 'Enter how long the activity lasts, from 0.5 to 72 hours.')
+  const minAgeRaw = str(formData, 'min_age')
+  const min_age = act && minAgeRaw ? Number(minAgeRaw) : null
+  if (act && minAgeRaw && (!Number.isInteger(min_age) || min_age! < 0 || min_age! > 99)) back(id, 'error', 'Enter the minimum age as a whole number, for example 12.')
+  const aType = str(formData, 'activity_type')
   const min_group = intOrNull(str(formData, 'min_group'))
   const max_group = intOrNull(str(formData, 'max_group'))
   for (const [v, label] of [[duration_days, 'days'], [nights, 'nights'], [min_group, 'minimum group size'], [max_group, 'maximum group size']] as [number | null, string][])
@@ -67,6 +76,7 @@ export async function savePackage(formData: FormData) {
     pickup_point: str(formData, 'pickup_point') || null,
     drop_point: str(formData, 'drop_point') || null,
     duration_days, nights, price_paise,
+    ...(act ? { duration_hours, min_age, activity_type: ['water_sports', 'adventure', 'sightseeing', 'cultural', 'food', 'wildlife', 'day_trip', 'wellness', 'other'].includes(aType) ? aType : null } : {}),
     occupancy_basis: str(formData, 'occupancy_basis') || null,
     price_includes_taxes: formData.get('price_includes_taxes') === 'on',
     inclusions: lines(formData.get('inclusions')),
@@ -146,16 +156,20 @@ export async function addDeparture(formData: FormData) {
   const return_date = str(formData, 'return_date') || null
   const total_seats = Number(str(formData, 'total_seats'))
   const cutoff = str(formData, 'booking_cutoff_days')
+  const start_time = str(formData, 'start_time') || null
+  if (start_time && !/^([01]\d|2[0-3]):[0-5]\d$/.test(start_time)) back(id, 'error', 'Enter the start time as hours and minutes.', '#departures')
+  const { data: kindRow } = await supabase.from('packages').select('kind').eq('id', id).maybeSingle()
+  const isAct = kindRow?.kind === 'activity'
   const overrideRaw = str(formData, 'price_override')
   const price_override_paise = overrideRaw ? rupeesToPaise(overrideRaw) : null
   if (!/^\d{4}-\d{2}-\d{2}$/.test(departure_date)) back(id, 'error', 'Choose the departure date.', '#departures')
   if (return_date && return_date < departure_date) back(id, 'error', 'The return date cannot be before the departure date.', '#departures')
   if (!Number.isInteger(total_seats) || total_seats < 1 || total_seats > 500) back(id, 'error', 'Enter how many seats you are selling (1 to 500).', '#departures')
   if (overrideRaw && price_override_paise === null) back(id, 'error', 'Enter the special price as a number of rupees, or leave it empty.', '#departures')
-  const booking_cutoff_days = cutoff === '' ? 2 : Number(cutoff)
+  const booking_cutoff_days = cutoff === '' ? (isAct ? 0 : 2) : Number(cutoff)
   if (!Number.isInteger(booking_cutoff_days) || booking_cutoff_days < 0 || booking_cutoff_days > 30) back(id, 'error', 'Booking closes 0 to 30 days before departure.', '#departures')
-  const { error } = await supabase.from('package_departures').insert({ package_id: id, departure_date, return_date, total_seats, price_override_paise, booking_cutoff_days })
-  if (error) back(id, 'error', error.code === '23505' ? 'You already have a departure on that date.' : error.message.includes('past') ? 'That date has already passed.' : cleanDbMessage(error.message), '#departures')
+  const { error } = await supabase.from('package_departures').insert({ package_id: id, departure_date, return_date: isAct ? null : return_date, total_seats, price_override_paise, booking_cutoff_days, start_time: isAct ? start_time : null })
+  if (error) back(id, 'error', error.code === '23505' ? (isAct ? 'You already have a slot at that date and time.' : 'You already have a departure on that date.') : error.message.includes('past') ? 'That date has already passed.' : cleanDbMessage(error.message), '#departures')
   back(id, 'ok', 'Departure added.', '#departures')
 }
 
