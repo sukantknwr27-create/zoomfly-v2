@@ -4,7 +4,8 @@ import { notFound } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { requireUser } from '@/lib/auth'
 import { STATUS_LABEL, missingFields, statusPill } from '@/lib/packages'
-import { formatDate, formatPaise } from '@/lib/format'
+import { formatDate, formatPaise, formatTime } from '@/lib/format'
+import { ACTIVITY_TYPES, tripPath } from '@/lib/activities'
 import { FileUpload } from '@/components/FileUpload'
 import type { DepartureRow, PackageRow } from '@/lib/types'
 import { addDeparture, addPhotos, cancelDeparture, deleteDraft, removeDeparture, removePhoto, savePackage, setPackageState } from '../actions'
@@ -30,6 +31,7 @@ export default async function EditPackage({ params, searchParams }: { params: { 
   const today = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Kolkata' })
   const missing = missingFields(p, departures, today)
   const editableForSubmit = p.listing_status === 'draft' || p.listing_status === 'changes_requested'
+  const act = p.kind === 'activity'
   const days = Math.min(Math.max(p.itinerary?.length ?? 0, p.duration_days ?? 0, 1), 60)
   const it = p.itinerary ?? []
 
@@ -39,8 +41,9 @@ export default async function EditPackage({ params, searchParams }: { params: { 
       <div className="page__head">
         <h1>{p.title}</h1>
         <div className="status-line">
+          <span className="pill">{act ? 'Activity' : 'Holiday package'}</span>
           <span className={statusPill(p.listing_status)}>{STATUS_LABEL[p.listing_status]}</span>
-          {p.listing_status === 'published' && <Link href={`/trips/${p.slug}`}>See it as travellers do</Link>}
+          {p.listing_status === 'published' && <Link href={tripPath(p)}>See it as travellers do</Link>}
         </div>
       </div>
 
@@ -77,11 +80,22 @@ export default async function EditPackage({ params, searchParams }: { params: { 
                 {(dests ?? []).map((d: { id: string; name: string; state: string | null }) => <option key={d.id} value={d.id}>{d.name}{d.state ? `, ${d.state}` : ''}</option>)}
               </select>
             </div>
-            <div className="field"><label htmlFor="departure_city">Leaves from</label><input id="departure_city" name="departure_city" defaultValue={p.departure_city ?? ''} placeholder="Delhi" /></div>
-            <div className="field"><label htmlFor="pickup_point">Pickup point</label><input id="pickup_point" name="pickup_point" defaultValue={p.pickup_point ?? ''} placeholder="Kashmere Gate ISBT, 6 pm" /></div>
-            <div className="field"><label htmlFor="drop_point">Drop point</label><input id="drop_point" name="drop_point" defaultValue={p.drop_point ?? ''} /></div>
-            <div className="field"><label htmlFor="duration_days">Days</label><input id="duration_days" name="duration_days" type="number" min={1} max={60} defaultValue={p.duration_days ?? ''} /></div>
-            <div className="field"><label htmlFor="nights">Nights</label><input id="nights" name="nights" type="number" min={0} max={60} defaultValue={p.nights ?? ''} /></div>
+            <div className="field"><label htmlFor="departure_city">{act ? 'City where it takes place' : 'Leaves from'}</label><input id="departure_city" name="departure_city" defaultValue={p.departure_city ?? ''} placeholder="Delhi" /></div>
+            <div className="field"><label htmlFor="pickup_point">{act ? 'Meeting point' : 'Pickup point'}</label><input id="pickup_point" name="pickup_point" defaultValue={p.pickup_point ?? ''} placeholder={act ? 'Raft base camp, Shivpuri' : 'Kashmere Gate ISBT, 6 pm'} /></div>
+            <div className="field"><label htmlFor="drop_point">{act ? 'Ends at (if different)' : 'Drop point'}</label><input id="drop_point" name="drop_point" defaultValue={p.drop_point ?? ''} /></div>
+            {act ? (
+              <>
+                <div className="field"><label htmlFor="duration_hours">How long it lasts, in hours</label><input id="duration_hours" name="duration_hours" type="number" step="0.5" min={0.5} max={72} defaultValue={p.duration_hours ?? ''} /></div>
+                <div className="field"><label htmlFor="min_age">Minimum age</label><input id="min_age" name="min_age" type="number" min={0} max={99} defaultValue={p.min_age ?? ''} /><span className="field__hint">Leave empty if there is none.</span></div>
+                <div className="field"><label htmlFor="activity_type">Type of activity</label>
+                  <select id="activity_type" name="activity_type" defaultValue={p.activity_type ?? ''}><option value="">Choose one</option>{ACTIVITY_TYPES.map(([v, l]) => <option key={v} value={v}>{l}</option>)}</select></div>
+              </>
+            ) : (
+              <>
+                <div className="field"><label htmlFor="duration_days">Days</label><input id="duration_days" name="duration_days" type="number" min={1} max={60} defaultValue={p.duration_days ?? ''} /></div>
+                <div className="field"><label htmlFor="nights">Nights</label><input id="nights" name="nights" type="number" min={0} max={60} defaultValue={p.nights ?? ''} /></div>
+              </>
+            )}
           </div>
         </fieldset>
 
@@ -97,6 +111,7 @@ export default async function EditPackage({ params, searchParams }: { params: { 
           </p>
         </fieldset>
 
+        {!act && (
         <fieldset className="fieldset">
           <legend>Day by day</legend>
           {Array.from({ length: days }, (_, i) => (
@@ -107,6 +122,7 @@ export default async function EditPackage({ params, searchParams }: { params: { 
           ))}
           <span className="field__hint">The number of rows follows the number of days above. Change the days, save, and the rows update.</span>
         </fieldset>
+        )}
 
         <fieldset className="fieldset">
           <legend>What is and is not included</legend>
@@ -117,14 +133,14 @@ export default async function EditPackage({ params, searchParams }: { params: { 
         </fieldset>
 
         <fieldset className="fieldset">
-          <legend>Stay, food and travel</legend>
+          <legend>{act ? 'Who can join and safety' : 'Stay, food and travel'}</legend>
           <div className="form__grid">
-            <div className="field"><label htmlFor="hotel_details">Stay</label><input id="hotel_details" name="hotel_details" defaultValue={p.hotel_details ?? ''} placeholder="3-star hotel near Mall Road, 2 per room" /></div>
+            {!act && <><div className="field"><label htmlFor="hotel_details">Stay</label><input id="hotel_details" name="hotel_details" defaultValue={p.hotel_details ?? ''} placeholder="3-star hotel near Mall Road, 2 per room" /></div>
             <div className="field"><label htmlFor="meal_plan">Meals</label><input id="meal_plan" name="meal_plan" defaultValue={p.meal_plan ?? ''} placeholder="Breakfast and dinner" /></div>
-            <div className="field"><label htmlFor="vehicle_type">Transport</label><input id="vehicle_type" name="vehicle_type" defaultValue={p.vehicle_type ?? ''} placeholder="Tempo Traveller" /></div>
-            <div className="field"><label htmlFor="child_policy">Children</label><input id="child_policy" name="child_policy" defaultValue={p.child_policy ?? ''} placeholder="Under 5 free without a seat" /></div>
-            <div className="field"><label htmlFor="min_group">Smallest group</label><input id="min_group" name="min_group" type="number" min={1} defaultValue={p.min_group ?? ''} /></div>
-            <div className="field"><label htmlFor="max_group">Largest group</label><input id="max_group" name="max_group" type="number" min={1} defaultValue={p.max_group ?? ''} /></div>
+            <div className="field"><label htmlFor="vehicle_type">Transport</label><input id="vehicle_type" name="vehicle_type" defaultValue={p.vehicle_type ?? ''} placeholder="Tempo Traveller" /></div></>}
+            <div className="field"><label htmlFor="child_policy">Children</label><input id="child_policy" name="child_policy" defaultValue={p.child_policy ?? ''} placeholder={act ? 'Children from 8 years with an adult' : 'Under 5 free without a seat'} /></div>
+            <div className="field"><label htmlFor="min_group">{act ? 'Smallest group per slot' : 'Smallest group'}</label><input id="min_group" name="min_group" type="number" min={1} defaultValue={p.min_group ?? ''} /></div>
+            <div className="field"><label htmlFor="max_group">{act ? 'Largest group per slot' : 'Largest group'}</label><input id="max_group" name="max_group" type="number" min={1} defaultValue={p.max_group ?? ''} /></div>
             <div className="field">
               <label htmlFor="difficulty_level">How demanding is it?</label>
               <select id="difficulty_level" name="difficulty_level" defaultValue={p.difficulty_level ?? ''}><option value="">Not applicable</option><option value="easy">Easy</option><option value="moderate">Moderate</option><option value="hard">Hard</option></select>
@@ -137,7 +153,7 @@ export default async function EditPackage({ params, searchParams }: { params: { 
 
         <fieldset className="fieldset">
           <legend>If a traveller cancels</legend>
-          {(codes ?? []).map((c: { code: string; label: string; summary: string }) => (
+          {(codes ?? []).filter((c: { code: string }) => (c.code === 'activity_24h') === act).map((c: { code: string; label: string; summary: string }) => (
             <label key={c.code} className="check">
               <input type="radio" name="cancellation_policy" value={c.code} defaultChecked={p.cancellation_policy === c.code} />
               <span>
@@ -179,15 +195,15 @@ export default async function EditPackage({ params, searchParams }: { params: { 
       </section>
 
       <section className="section" id="departures">
-        <h2>Departures and seats</h2>
+        <h2>{act ? 'Slots and seats' : 'Departures and seats'}</h2>
         <p className="muted">Travellers can book only the dates and seats you list here. Seats are counted as people book.</p>
         {departures.length > 0 && (
           <table className="table" style={{ marginBottom: 24 }}>
-            <thead><tr><th>Departs</th><th>Seats sold</th><th>Price</th><th>Status</th><th>Actions</th></tr></thead>
+            <thead><tr><th>{act ? 'Date and time' : 'Departs'}</th><th>Seats sold</th><th>Price</th><th>Status</th><th>Actions</th></tr></thead>
             <tbody>
               {departures.map((d) => (
                 <tr key={d.id}>
-                  <td>{formatDate(d.departure_date, true)}{d.return_date ? <span className="muted small"><br />back {formatDate(d.return_date)}</span> : null}</td>
+                  <td>{formatDate(d.departure_date, true)}{d.start_time ? `, ${formatTime(d.start_time)}` : ''}{d.return_date ? <span className="muted small"><br />back {formatDate(d.return_date)}</span> : null}</td>
                   <td>{d.booked_seats} of {d.total_seats}</td>
                   <td>{d.price_override_paise ? formatPaise(d.price_override_paise) : <span className="muted">Trip price</span>}</td>
                   <td>{d.status === 'open' ? (d.departure_date < today ? 'Past' : 'Open') : d.status === 'cancelled' ? 'Cancelled' : 'Closed'}</td>
@@ -212,12 +228,16 @@ export default async function EditPackage({ params, searchParams }: { params: { 
           <input type="hidden" name="id" value={p.id} />
           <div className="form__grid">
             <div className="field"><label htmlFor="departure_date">Departure date</label><input id="departure_date" name="departure_date" type="date" min={today} required /></div>
+            {act ? (
+              <div className="field"><label htmlFor="start_time">Start time</label><input id="start_time" name="start_time" type="time" required /><span className="field__hint">Add one slot per start time, for example 9:00 AM and 2:00 PM.</span></div>
+            ) : (
             <div className="field"><label htmlFor="return_date">Return date</label><input id="return_date" name="return_date" type="date" min={today} /><span className="field__hint">Optional. We work it out from the trip length if you leave it empty.</span></div>
-            <div className="field"><label htmlFor="total_seats">Seats you are selling</label><input id="total_seats" name="total_seats" type="number" min={1} max={500} required /></div>
-            <div className="field"><label htmlFor="booking_cutoff_days">Bookings close, days before departure</label><input id="booking_cutoff_days" name="booking_cutoff_days" type="number" min={0} max={30} defaultValue={2} /></div>
+            )}
+            <div className="field"><label htmlFor="total_seats">{act ? 'Places in this slot' : 'Seats you are selling'}</label><input id="total_seats" name="total_seats" type="number" min={1} max={500} required /></div>
+            <div className="field"><label htmlFor="booking_cutoff_days">{act ? 'Bookings close, days before (0 = until the start time)' : 'Bookings close, days before departure'}</label><input id="booking_cutoff_days" name="booking_cutoff_days" type="number" min={0} max={30} defaultValue={act ? 0 : 2} /></div>
             <div className="field"><label htmlFor="price_override">Special price for this date, in rupees</label><input id="price_override" name="price_override" inputMode="decimal" /><span className="field__hint">Optional, for example a peak-season date.</span></div>
           </div>
-          <div className="actions"><button className="btn" type="submit">Add departure</button></div>
+          <div className="actions"><button className="btn" type="submit">{act ? 'Add slot' : 'Add departure'}</button></div>
         </form>
       </section>
 
