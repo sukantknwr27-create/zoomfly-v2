@@ -11,6 +11,7 @@ export type BookingRow = {
   departure_id: string
   package_title: string
   departure_date: string
+  departure_time: string | null
   trip_end_date: string
   adults: number
   children: number

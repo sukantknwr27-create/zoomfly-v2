@@ -22,16 +22,20 @@ export function missingFields(p: PackageRow, departures: DepartureRow[], today: 
   if (!p.title?.trim()) m.push('a title')
   if (!p.destination_id) m.push('a destination')
   if (!p.departure_city?.trim()) m.push('the departure city')
-  if (!p.duration_days || p.duration_days <= 0) m.push('the number of days')
+  const act = p.kind === 'activity'
+  if (act) {
+    if (!p.duration_hours || Number(p.duration_hours) <= 0) m.push('how long it lasts, in hours')
+    if (!p.pickup_point?.trim()) m.push('the meeting point')
+  } else if (!p.duration_days || p.duration_days <= 0) m.push('the number of days')
   if (!p.price_paise || p.price_paise <= 0) m.push('the price')
   if (!p.occupancy_basis?.trim()) m.push('what the price is based on (for example, per person, twin sharing)')
   if (!p.cancellation_policy) m.push('a cancellation policy')
-  if (!Array.isArray(p.itinerary) || p.itinerary.length === 0) m.push('the day-by-day plan')
+  if (!act && (!Array.isArray(p.itinerary) || p.itinerary.length === 0)) m.push('the day-by-day plan')
   if (!p.inclusions?.length) m.push('what is included')
   if (!p.exclusions?.length) m.push('what is not included')
   if ((p.photos?.length ?? 0) < 3) m.push(`at least 3 real photos (you have ${p.photos?.length ?? 0})`)
   if (p.high_risk_activities && !p.insurance_provided) m.push('insurance, which is required for high-risk activities')
-  if (!departures.some((d) => d.status === 'open' && d.total_seats > d.booked_seats && d.departure_date >= today)) m.push('at least one open future departure with seats')
+  if (!departures.some((d) => d.status === 'open' && d.total_seats > d.booked_seats && d.departure_date >= today)) m.push(act ? 'at least one open future slot with seats' : 'at least one open future departure with seats')
   return m
 }
 

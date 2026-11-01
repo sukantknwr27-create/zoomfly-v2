@@ -36,7 +36,7 @@ export async function expandTokens(md: string): Promise<string> {
   ])
   const allTiers = (tiers ?? []) as Tier[]
   const tiersOf = (c: string) => allTiers.filter((x) => x.code === c)
-  const order = ['flexible', 'moderate', 'strict']
+  const order = ['flexible', 'moderate', 'strict', 'activity_24h']
   const cancellation = (codes ?? [])
     .sort((a: { code: string }, b: { code: string }) => order.indexOf(a.code) - order.indexOf(b.code))
     .map((c: { code: string; label: string }) => `- **${c.label}**: ${describeTiers(tiersOf(c.code))}.`)
@@ -50,7 +50,7 @@ export async function expandTokens(md: string): Promise<string> {
   }
   const commission = (rates ?? []).map((r: { label: string; rate_pct: number }) => `- ${r.label}: ${Number(r.rate_pct)}%`).join('\n')
   const s = st as { advance_pct: number; balance_due_days: number; seat_hold_minutes: number; payout_m1_pct: number; payout_m1_days_before: number; payout_m2_pct: number; payout_m2_days_before: number; payout_m3_pct: number; payout_m3_hours_after: number } | null
-  const payment = s ? `To confirm a booking you pay an advance of ${s.advance_pct}% of the total. The balance is due ${s.balance_due_days} days before departure. If the trip leaves within ${s.balance_due_days} days, the full amount is due when you book. Your seats are held for ${s.seat_hold_minutes} minutes while you pay.` : ''
+  const payment = s ? `Activities are always paid in full when you book. For tours, to confirm a booking you pay an advance of ${s.advance_pct}% of the total. The balance is due ${s.balance_due_days} days before departure. If the trip leaves within ${s.balance_due_days} days, the full amount is due when you book. Your seats are held for ${s.seat_hold_minutes} minutes while you pay.` : ''
   const payouts = s ? `- ${s.payout_m1_pct}% about ${s.payout_m1_days_before} days before departure\n- ${s.payout_m2_pct}% about ${s.payout_m2_days_before} days before departure\n- ${s.payout_m3_pct}% about ${s.payout_m3_hours_after} hours after the trip ends` : ''
 
   return md

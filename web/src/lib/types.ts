@@ -36,6 +36,10 @@ export type PublicPackage = {
   seller_city: string | null
   seller_verified: boolean
   next_departure_date: string | null
+  kind: 'package' | 'activity'
+  duration_hours: number | null
+  min_age: number | null
+  activity_type: string | null
 }
 
 export type PublicDeparture = {
@@ -45,6 +49,7 @@ export type PublicDeparture = {
   return_date: string | null
   price_paise: number
   seats_left: number
+  start_time: string | null
 }
 
 export type PublicDestination = { id: string; slug: string; name: string; state: string | null; package_count: number }
@@ -87,6 +92,10 @@ export type SellerRow = {
 export type ListingStatus = 'draft' | 'submitted' | 'changes_requested' | 'published' | 'paused' | 'rejected'
 
 export type PackageRow = {
+  kind: 'package' | 'activity'
+  duration_hours: number | null
+  min_age: number | null
+  activity_type: string | null
   id: string
   seller_id: string
   title: string
@@ -132,6 +141,7 @@ export type DepartureRow = {
   return_date: string | null
   total_seats: number
   booked_seats: number
+  start_time: string | null
   price_override_paise: number | null
   booking_cutoff_days: number
   status: 'open' | 'closed' | 'cancelled'

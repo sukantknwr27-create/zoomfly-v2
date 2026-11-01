@@ -7,9 +7,9 @@ export function daysUntil(dateStr: string): number {
   return Math.round((Date.parse(dateStr + 'T00:00:00Z') - Date.parse(today + 'T00:00:00Z')) / 86400000)
 }
 
-export function previewAmounts(unitPaise: number, seats: number, departureDate: string, s: Settings) {
+export function previewAmounts(unitPaise: number, seats: number, departureDate: string, s: Settings, alwaysFull = false) {
   const total = unitPaise * seats
-  const payInFull = daysUntil(departureDate) <= s.balance_due_days
+  const payInFull = alwaysFull || daysUntil(departureDate) <= s.balance_due_days
   const advance = payInFull ? total : Math.ceil((total * s.advance_pct) / 100)
   return { total, advance, payInFull, balance: total - advance }
 }
