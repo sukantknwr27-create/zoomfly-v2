@@ -3,14 +3,14 @@ import type { Metadata } from 'next'
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { requireUser } from '@/lib/auth'
-import { formatDate, formatPaise } from '@/lib/format'
+import { formatDate, formatPaise, formatSlot, formatTime } from '@/lib/format'
 import { BOOKING_LABEL, bookingPill } from '@/lib/booking'
 import { DisputeForm } from '@/components/DisputeForm'
 
 export const metadata: Metadata = { title: 'Bookings' }
 export const dynamic = 'force-dynamic'
 
-type B = { id: string; booking_ref: string; package_title: string; departure_date: string; seats: number; status: string; total_paise: number; paid_paise: number; commission_paise: number; traveller_details: { name?: string }[] | null; contact_name: string | null; contact_phone: string | null }
+type B = { id: string; booking_ref: string; package_title: string; departure_date: string; departure_time: string | null; seats: number; status: string; total_paise: number; paid_paise: number; commission_paise: number; traveller_details: { name?: string }[] | null; contact_name: string | null; contact_phone: string | null }
 type P = { id: string; milestone: string; amount_paise: number; due_on: string; status: string; hold_reason: string | null; booking_id: string }
 
 const MS: Record<string, string> = { m1: 'First payout', m2: 'Second payout', m3: 'Final payout', cancellation_retained: 'Kept from a cancellation' }
@@ -43,7 +43,7 @@ export default async function SellerBookings() {
             {bookings.map((b) => (
               <tr key={b.id}>
                 <td><strong>{b.package_title}</strong><br /><span className="muted small">{b.booking_ref}, {b.seats} {b.seats === 1 ? 'seat' : 'seats'}</span></td>
-                <td>{formatDate(b.departure_date, true)}</td>
+                <td>{formatSlot(b.departure_date, b.departure_time, true)}</td>
                 <td><span className={bookingPill(b.status)}>{BOOKING_LABEL[b.status]}</span><br /><span className="muted small">{formatPaise(b.paid_paise)} of {formatPaise(b.total_paise)} paid</span></td>
                 <td>{b.traveller_details ? b.traveller_details.map((t) => t.name).filter(Boolean).join(', ') : <span className="muted">After the advance is paid</span>}</td>
                 <td>{b.contact_phone ? <>{b.contact_name}<br />{b.contact_phone}</> : <span className="muted">Shared once paid in full</span>}</td>
