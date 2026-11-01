@@ -14,6 +14,7 @@ export function SiteFooter() {
           <nav aria-label="More about ZoomFly" className="site-footer__links">
             <h3>ZoomFly</h3>
             <Link href="/trips">Search trips</Link>
+            <Link href="/activities">Activities</Link>
             <Link href="/destinations">Destinations</Link>
             <Link href="/trip-planner">Trip planner</Link>
             <Link href="/how-it-works">How it works</Link>

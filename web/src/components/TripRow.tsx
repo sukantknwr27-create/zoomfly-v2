@@ -1,5 +1,6 @@
 import Link from 'next/link'
-import { formatDate, formatPaise, nightsLabel } from '@/lib/format'
+import { formatDate, formatPaise, formatTime, hoursLabel, nightsLabel } from '@/lib/format'
+import { activityTypeLabel, tripPath } from '@/lib/activities'
 import type { PublicDeparture, PublicPackage } from '@/lib/types'
 import type { SavedInfo } from '@/lib/saved'
 import { SaveButton } from '@/components/SaveButton'
@@ -7,25 +8,26 @@ import { IconClock, IconCompass, IconPin, IconShield } from '@/components/Icons'
 import { Stars } from '@/components/Stars'
 
 // A search result row. Facts come straight from the listing; nothing is invented.
-export function TripRow({ p, next, note, saved, here }: { p: PublicPackage; next?: PublicDeparture; note?: string; saved?: SavedInfo; here?: string }) {
+export function TripRow({ p, next, note, why, saved, here }: { p: PublicPackage; next?: PublicDeparture; note?: string; why?: string; saved?: SavedInfo; here?: string }) {
   const photo = p.photos?.[0]
   const hasRating = p.rating_avg !== null && p.review_count > 0
   const incl = (p.inclusions ?? []).slice(0, 4)
   return (
     <div className="cardwrap">
     {saved && <SaveButton packageId={p.id} saved={saved} here={here ?? '/trips'} variant="row" />}
-    <Link href={`/trips/${p.slug}`} className="rrow">
+    <Link href={tripPath(p)} className="rrow">
       <div className="rrow__media">
         {/* eslint-disable-next-line @next/next/no-img-element */}
         {photo ? <img src={photo} alt={`${p.title}, ${p.destination_name ?? ''}`} loading="lazy" /> : <span className="card__nophoto"><IconCompass /></span>}
-        <span className="rrow__kind">Holiday package</span>
+        <span className="rrow__kind">{p.kind === 'activity' ? (activityTypeLabel(p.activity_type) || 'Activity') : 'Holiday package'}</span>
       </div>
       <div className="rrow__main">
         <h3 className="rrow__title">{p.title}</h3>
         <div className="rrow__facts">
-          {nightsLabel(p.nights, p.duration_days) && <span><IconClock />{nightsLabel(p.nights, p.duration_days)}</span>}
+          {(p.kind === 'activity' ? hoursLabel(p.duration_hours) : nightsLabel(p.nights, p.duration_days)) && <span><IconClock />{p.kind === 'activity' ? hoursLabel(p.duration_hours) : nightsLabel(p.nights, p.duration_days)}</span>}
           {p.destination_name && <span><IconPin />{p.destination_name}</span>}
-          {p.departure_city && <span>From {p.departure_city}</span>}
+          {p.departure_city && p.kind !== 'activity' && <span>From {p.departure_city}</span>}
+          {p.kind === 'activity' && p.min_age !== null && <span>Ages {p.min_age}+</span>}
         </div>
         <div className="card__seller">
           <span>By {p.seller_name}</span>
@@ -34,6 +36,7 @@ export function TripRow({ p, next, note, saved, here }: { p: PublicPackage; next
         {hasRating && (
           <span className="card__rating"><Stars value={Number(p.rating_avg)} /> {Number(p.rating_avg).toFixed(1)} <span className="muted" style={{ fontWeight: 500 }}>({p.review_count} {p.review_count === 1 ? 'review' : 'reviews'})</span></span>
         )}
+        {why && <p className="est" style={{ margin: 0 }}>{why}</p>}
         {p.description && <p className="rrow__desc">{p.description}</p>}
         {incl.length > 0 && <ul className="tags">{incl.map((t, i) => <li key={i} className="tag tag--plain">{t}</li>)}</ul>}
       </div>
@@ -47,11 +50,11 @@ export function TripRow({ p, next, note, saved, here }: { p: PublicPackage; next
         <div style={{ display: 'grid', gap: 8, justifyItems: 'end' }}>
           {next && (
             <span className="small" style={{ lineHeight: 1.3 }}>
-              <strong>{formatDate(next.departure_date)}</strong><br />
-              <span className={next.seats_left <= 4 ? 'seats seats--few' : 'seats'}>{next.seats_left} {next.seats_left === 1 ? 'seat' : 'seats'} left</span>
+              <strong>{formatDate(next.departure_date)}{next.start_time ? `, ${formatTime(next.start_time)}` : ''}</strong><br />
+              <span className={next.seats_left <= 4 ? 'seats seats--few' : 'seats'}>{next.seats_left} {p.kind === 'activity' ? (next.seats_left === 1 ? 'place' : 'places') : next.seats_left === 1 ? 'seat' : 'seats'} left</span>
             </span>
           )}
-          <span className="btn btn--primary">View package</span>
+          <span className="btn btn--primary">{p.kind === 'activity' ? 'View activity' : 'View package'}</span>
         </div>
       </div>
     </Link>

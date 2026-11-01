@@ -15,6 +15,7 @@ export async function SiteHeader() {
   const main = [
     { href: '/destinations', label: 'Destinations' },
     { href: '/trips', label: 'Holiday packages' },
+    { href: '/activities', label: 'Activities' },
     { href: '/trust', label: 'Trust centre' },
     ...(isSeller || isAdmin ? [] : [{ href: '/become-a-seller', label: 'Sell on ZoomFly' }]),
   ]

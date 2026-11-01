@@ -1,5 +1,6 @@
 import Link from 'next/link'
-import { formatDate, formatPaise, nightsLabel } from '@/lib/format'
+import { formatDate, formatPaise, formatTime, hoursLabel, nightsLabel } from '@/lib/format'
+import { tripPath } from '@/lib/activities'
 import type { PublicDeparture, PublicPackage } from '@/lib/types'
 import type { SavedInfo } from '@/lib/saved'
 import { SaveButton } from '@/components/SaveButton'
@@ -12,7 +13,7 @@ export function TripCard({ p, next, saved, here }: { p: PublicPackage; next?: Pu
   return (
     <div className="cardwrap">
     {saved && <SaveButton packageId={p.id} saved={saved} here={here ?? '/trips'} variant="card" />}
-    <Link href={`/trips/${p.slug}`} className="card">
+    <Link href={tripPath(p)} className="card">
       <div className="card__media">
         {photo ? (
           // eslint-disable-next-line @next/next/no-img-element
@@ -24,8 +25,8 @@ export function TripCard({ p, next, saved, here }: { p: PublicPackage; next?: Pu
       </div>
       <div className="card__body">
         <div className="card__meta">
-          {nightsLabel(p.nights, p.duration_days) && <span><IconClock />{nightsLabel(p.nights, p.duration_days)}</span>}
-          {p.departure_city && <span><IconPin />From {p.departure_city}</span>}
+          {(p.kind === 'activity' ? hoursLabel(p.duration_hours) : nightsLabel(p.nights, p.duration_days)) && <span><IconClock />{p.kind === 'activity' ? hoursLabel(p.duration_hours) : nightsLabel(p.nights, p.duration_days)}</span>}
+          {p.departure_city && <span><IconPin />{p.kind === 'activity' ? p.departure_city : `From ${p.departure_city}`}</span>}
         </div>
         <h3 className="card__title">{p.title}</h3>
         <div className="card__seller">
@@ -45,8 +46,8 @@ export function TripCard({ p, next, saved, here }: { p: PublicPackage; next?: Pu
           </div>
           {next && (
             <div className="card__next">
-              <strong>{formatDate(next.departure_date)}</strong>
-              <span className={next.seats_left <= 4 ? 'seats seats--few' : 'seats'}>{next.seats_left} {next.seats_left === 1 ? 'seat' : 'seats'} left</span>
+              <strong>{formatDate(next.departure_date)}{next.start_time ? `, ${formatTime(next.start_time)}` : ''}</strong>
+              <span className={next.seats_left <= 4 ? 'seats seats--few' : 'seats'}>{next.seats_left} {p.kind === 'activity' ? (next.seats_left === 1 ? 'place' : 'places') : next.seats_left === 1 ? 'seat' : 'seats'} left</span>
             </div>
           )}
         </div>
