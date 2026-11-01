@@ -4,7 +4,7 @@ import { notFound } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { requireAdmin } from '@/lib/auth'
 import { STATUS_LABEL, missingFields, statusPill } from '@/lib/packages'
-import { formatDate, formatPaise } from '@/lib/format'
+import { formatDate, formatPaise, formatSlot, formatTime } from '@/lib/format'
 import type { DepartureRow, PackageRow, SellerRow } from '@/lib/types'
 import { reviewPackage } from '../actions'
 
@@ -37,7 +37,7 @@ export default async function ReviewPackage({ params, searchParams }: { params: 
         <div className="status-line">
           <span className={statusPill(p.listing_status)}>{STATUS_LABEL[p.listing_status]}</span>
           <span className="muted small">by {seller?.business_name}, {seller?.city}</span>
-          {p.listing_status === 'published' && <Link href={`/trips/${p.slug}`}>Open the public page</Link>}
+          {p.listing_status === 'published' && <Link href={p.kind === 'activity' ? `/activities/${p.slug}` : `/trips/${p.slug}`}>Open the public page</Link>}
         </div>
       </div>
       {searchParams.error && <p className="notice notice--error" role="alert">{searchParams.error}</p>}
@@ -72,7 +72,7 @@ export default async function ReviewPackage({ params, searchParams }: { params: 
             ))}
           </div>
           <h3 style={{ marginTop: 20 }}>Departures</h3>
-          <ul className="dep-list">{departures.map((d) => <li key={d.id}><span>{formatDate(d.departure_date, true)}</span><span>{d.total_seats} seats, {d.status}</span></li>)}</ul>
+          <ul className="dep-list">{departures.map((d) => <li key={d.id}><span>{formatDate(d.departure_date, true)}{d.start_time ? `, ${formatTime(d.start_time)}` : ''}</span><span>{d.total_seats} seats, {d.status}</span></li>)}</ul>
         </div>
 
         <form className="panel form" action={reviewPackage}>
@@ -80,7 +80,7 @@ export default async function ReviewPackage({ params, searchParams }: { params: 
           <h2>Your decision</h2>
           <div className="field">
             <label htmlFor="commission_category">Commission category</label>
-            <select id="commission_category" name="commission_category" defaultValue={p.commission_category ?? ''}>
+            <select id="commission_category" name="commission_category" defaultValue={p.commission_category ?? (p.kind === 'activity' ? 'activities' : '')}>
               <option value="">Choose one</option>
               {(rates ?? []).map((r: { category: string; label: string; rate_pct: number }) => <option key={r.category} value={r.category}>{r.label}, {Number(r.rate_pct)}%</option>)}
             </select>
