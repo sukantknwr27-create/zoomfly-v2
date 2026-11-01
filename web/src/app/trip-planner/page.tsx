@@ -6,12 +6,17 @@ import { Banner } from '@/components/Banner'
 import { TripRow } from '@/components/TripRow'
 import { IconCheck, IconCompass } from '@/components/Icons'
 import { formatPaise } from '@/lib/format'
+import { aiPlannerEnabled, planWithClaude, type AiResult } from '@/lib/ai-planner'
+import { allow, clientKey } from '@/lib/ratelimit'
+import { IconSparkle } from '@/components/Icons'
 import type { PublicDeparture, PublicDestination, PublicPackage } from '@/lib/types'
 
-export const metadata: Metadata = { title: 'Trip planner', description: 'Tell us where, when and your budget. We match real open departures with seats for your group.', alternates: { canonical: '/trip-planner' } }
+export async function generateMetadata({ searchParams }: { searchParams: { ask?: string } }): Promise<Metadata> {
+  return { title: 'Trip planner', description: 'Tell us where, when and your budget. We match real open departures with seats for your group.', alternates: { canonical: '/trip-planner' }, ...(searchParams.ask ? { robots: { index: false } } : {}) }
+}
 export const dynamic = 'force-dynamic'
 
-type SP = { destination?: string; month?: string; days?: string; budget?: string; people?: string }
+type SP = { ask?: string; destination?: string; month?: string; days?: string; budget?: string; people?: string }
 const BUDGETS = [['', 'Any budget'], ['10000', 'Up to ₹10,000'], ['20000', 'Up to ₹20,000'], ['35000', 'Up to ₹35,000'], ['50000', 'Up to ₹50,000'], ['100000', 'Up to ₹1,00,000']]
 const LENGTHS = [['', 'Any length'], ['short', 'Up to 3 days'], ['week', '4 to 7 days'], ['long', '8 days or more']]
 
@@ -24,13 +29,33 @@ export default async function Planner({ searchParams }: { searchParams: SP }) {
   const people = Math.max(1, Math.min(20, Number(searchParams.people) || 2))
   const asked = Boolean(searchParams.people || dest || month || days || budget)
 
+  const aiOn = aiPlannerEnabled()
+  const ask = (searchParams.ask ?? '').replace(/\s+/g, ' ').trim().slice(0, 400)
+  let ai: AiResult | null = null
+  let aiTrips: { p: PublicPackage; d?: PublicDeparture; reason: string }[] = []
+  if (aiOn && ask.length >= 8) {
+    if (!(await allow(`aiplan:${clientKey()}`, 8, 3600))) {
+      ai = { error: 'You have used the planner a few times already. Please try again in an hour, or use the filters below.' }
+    } else {
+      const { data: all } = await supabase.from('public_packages').select('*').eq('kind', 'package').order('next_departure_date', { ascending: true }).limit(80)
+      const pkgs = (all ?? []) as PublicPackage[]
+      const { data: dd } = pkgs.length ? await supabase.from('public_package_departures').select('*').in('package_id', pkgs.map((p) => p.id)).gt('seats_left', 0).order('departure_date').limit(600) : { data: [] }
+      const deps = (dd ?? []) as PublicDeparture[]
+      ai = pkgs.length ? await planWithClaude(ask, pkgs, deps) : { error: 'No trips are open for booking yet, so there is nothing to suggest.' }
+      if (!('error' in ai)) {
+        const byId = new Map(pkgs.map((p) => [p.id, p]))
+        aiTrips = ai.picks.map((k) => ({ p: byId.get(k.id)!, d: deps.find((d) => d.package_id === k.id), reason: k.reason })).filter((r) => r.p)
+      }
+    }
+  }
+
   const { data: dests } = await supabase.from('public_destinations').select('id, slug, name, package_count').order('name')
   const destinations = (dests ?? []) as Pick<PublicDestination, 'id' | 'slug' | 'name' | 'package_count'>[]
   const months = Array.from({ length: 12 }, (_, i) => { const d = new Date(); d.setUTCDate(1); d.setUTCMonth(d.getUTCMonth() + i); return { v: d.toISOString().slice(0, 7), label: d.toLocaleDateString('en-IN', { month: 'long', year: 'numeric', timeZone: 'UTC' }) } })
 
   let matches: { p: PublicPackage; d: PublicDeparture }[] = []
   if (asked) {
-    let q = supabase.from('public_packages').select('*')
+    let q = supabase.from('public_packages').select('*').eq('kind', 'package')
     if (dest) q = q.eq('destination_slug', dest)
     if (budget) q = q.lte('price_paise', budget * 100)
     if (days === 'short') q = q.lte('duration_days', 3)
@@ -55,7 +80,39 @@ export default async function Planner({ searchParams }: { searchParams: SP }) {
     <>
       <Banner title="Trip planner" sub="Tell us where, when and how many. We match real open departures that still have seats for your group." />
       <div className="wrap page">
+        {aiOn && (
+          <section className="panel" style={{ marginBottom: 24 }} aria-label="Describe your trip">
+            <h2 style={{ display: 'flex', alignItems: 'center', gap: 8 }}><IconSparkle className="" /> Describe your trip in your own words</h2>
+            <form action="/trip-planner" method="get" className="form" style={{ maxWidth: 'none' }}>
+              <div className="field">
+                <label htmlFor="ask" className="sr-only">Your trip</label>
+                <textarea id="ask" name="ask" rows={3} maxLength={400} defaultValue={ask} placeholder="For example: 4 days in the hills in December with my parents, under ₹30,000 each" style={{ font: 'inherit', padding: 12, border: '1.5px solid var(--line-strong)', borderRadius: 10, width: '100%' }} />
+              </div>
+              <div className="actions"><button className="btn btn--primary" type="submit"><IconSparkle />Suggest trips</button></div>
+            </form>
+            <p className="muted small" style={{ margin: '10px 0 0' }}>AI picks only from trips that are open for booking on ZoomFly, and can make mistakes, so check the dates and price on the trip page. Your text is sent to Anthropic to produce the suggestions. Do not include phone numbers or other personal details.</p>
+          </section>
+        )}
+
+        {ai && (
+          <section aria-label="AI suggestions" style={{ marginBottom: 32 }}>
+            {'error' in ai ? (
+              <div className="notice notice--wait">{ai.error}</div>
+            ) : (
+              <>
+                {ai.intro && <p style={{ fontSize: '1.05rem', fontWeight: 600 }}>{ai.intro}</p>}
+                {aiTrips.length === 0 ? (
+                  <div className="panel empty"><IconCompass /><p className="muted">No open trip fits that request. Try changing the month, budget or place, or browse all trips.</p><Link className="btn btn--primary" href="/trips">Browse all trips</Link></div>
+                ) : (
+                  <div className="rows">{aiTrips.map(({ p, d, reason }) => <TripRow key={p.id} p={p} next={d} why={reason} saved={saved} here="/trip-planner" />)}</div>
+                )}
+              </>
+            )}
+          </section>
+        )}
+
         <form className="panel" action="/trip-planner" method="get" style={{ marginBottom: 32 }}>
+          <h2>Or use the filters</h2>
           <div className="planner-form">
             <div className="field"><label htmlFor="pd">Where to</label><select id="pd" name="destination" defaultValue={dest}><option value="">Anywhere</option>{destinations.map((d) => <option key={d.id} value={d.slug}>{d.name}</option>)}</select></div>
             <div className="field"><label htmlFor="pm">Leaving in</label><select id="pm" name="month" defaultValue={month}><option value="">Any month</option>{months.map((m) => <option key={m.v} value={m.v}>{m.label}</option>)}</select></div>
