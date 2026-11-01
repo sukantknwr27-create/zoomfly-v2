@@ -19,7 +19,7 @@ export default async function BecomeASeller() {
   )
   return (
     <>
-      <Banner title="List your tours on ZoomFly" sub="Reach travellers who want a verified operator. Registration is free, and ZoomFly earns a commission only when you get a booking.">
+      <Banner title="List your tours and activities on ZoomFly" sub="Reach travellers who want a verified operator. Registration is free, and ZoomFly earns a commission only when you get a booking.">
         <div style={{ marginTop: 8 }}>{cta}</div>
       </Banner>
       <div className="wrap page">
@@ -44,8 +44,8 @@ export default async function BecomeASeller() {
               <div className="panel">
                 <h2><IconWallet className="" /> How it works</h2>
                 <ul className="tick-list">
-                  <li><IconCheck />You publish dates and seat counts. Travellers see the seats that are really left.</li>
-                  <li><IconCheck />Travellers pay ZoomFly. You are paid in stages as the trip approaches and after it ends.</li>
+                  <li><IconCheck />You publish dates and seat counts, or time slots for activities. Travellers see the places that are really left.</li>
+                  <li><IconCheck />Travellers pay ZoomFly. For tours you are paid in stages as the trip approaches and after it ends. For activities you are paid once, after the activity.</li>
                   <li><IconCheck />Your contact details are shared with a traveller once they have paid in full.</li>
                   <li><IconCheck />Commission depends on the kind of tour and is shown before you publish.</li>
                 </ul>
