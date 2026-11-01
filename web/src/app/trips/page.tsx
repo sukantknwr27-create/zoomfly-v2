@@ -47,7 +47,7 @@ export default async function Trips({ searchParams }: { searchParams: SP }) {
     monthIds = Array.from(new Set((md ?? []).map((r: { package_id: string }) => r.package_id)))
   }
 
-  let query = supabase.from('public_packages').select('*', { count: 'exact' })
+  let query = supabase.from('public_packages').select('*', { count: 'exact' }).eq('kind', 'package')
   if (q) query = query.or(`title.ilike.%${q}%,destination_name.ilike.%${q}%,seller_name.ilike.%${q}%`)
   if (dest) query = query.eq('destination_slug', dest)
   if (min !== null) query = query.gte('price_paise', min)
@@ -80,7 +80,7 @@ export default async function Trips({ searchParams }: { searchParams: SP }) {
   const months = Array.from({ length: 12 }, (_, i) => { const d = new Date(); d.setUTCDate(1); d.setUTCMonth(d.getUTCMonth() + i); return { v: d.toISOString().slice(0, 7), label: d.toLocaleDateString('en-IN', { month: 'long', year: 'numeric', timeZone: 'UTC' }) } })
   const anyFilter = Boolean(q || dest || min || max || days || month || rating)
 
-  const { data: pk } = await supabase.from('public_packages').select('destination_slug, photos').limit(300)
+  const { data: pk } = await supabase.from('public_packages').select('destination_slug, photos').eq('kind', 'package').limit(300)
   const photoBy = new Map<string, string>()
   for (const r of (pk ?? []) as { destination_slug: string | null; photos: string[] }[]) if (r.destination_slug && r.photos?.[0] && !photoBy.has(r.destination_slug)) photoBy.set(r.destination_slug, r.photos[0])
   const DUR: [string, string][] = [['', 'Any length'], ['short', 'Up to 3 days'], ['week', '4 to 7 days'], ['long', '8 days or more']]
